@@ -1,0 +1,99 @@
+/* Whole admin area background */
+.admin-shell {
+  min-height: 100vh;
+  position: relative;
+  background-image: url("https://images.unsplash.com/photo-1571902943202-507ec2618e8f");
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+/* Blur + dark overlay */
+.admin-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.70);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 0;
+}
+
+/* Sidebar glass */
+.admin-sidebar {
+  position: relative;
+  z-index: 1;
+  width: 270px;
+  background: rgba(18, 18, 20, 0.55);
+  border-right: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.admin-brand {
+  color: rgba(255,255,255,0.95);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.admin-subtitle {
+  color: rgba(255,255,255,0.65);
+  font-size: 0.9rem;
+}
+
+/* Sidebar links */
+.admin-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: rgba(255,255,255,0.80);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.admin-link:hover {
+  color: rgba(255,255,255,0.95);
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.10);
+}
+
+.admin-link.active {
+  color: rgba(255,255,255,0.98);
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.16);
+}
+
+/* Main content glass panel */
+.admin-main {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  padding: 18px;
+}
+
+.admin-topbar {
+  background: rgba(18, 18, 20, 0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 12px 14px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: rgba(255,255,255,0.92);
+}
+
+/* Card style for admin pages */
+.admin-card {
+  background: rgba(18, 18, 20, 0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: rgba(255,255,255,0.92);
+}
+
+.admin-muted {
+  color: rgba(255,255,255,0.65);
+}
