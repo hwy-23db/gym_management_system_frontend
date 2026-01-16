@@ -14,7 +14,7 @@ export default function Login() {
 
   // Captcha served from backend web route
   const backendUrl =
-    import.meta.env.VITE_BACKEND_URL || "http://8.222.195.9:6060/api";
+    import.meta.env.VITE_BACKEND_URL || "https://api.unityfitnessmyanmar.online/api";
 
   // Start with empty, set once in useEffect to avoid extra request during render
   const [captchaUrl, setCaptchaUrl] = useState("");
