@@ -177,6 +177,7 @@ export default function AdminDashboard() {
       const res = await axiosClient.get(API.ATTENDANCE_REPORT, {
         signal: abortRef.current?.signal,
         params: { from: from || undefined, to: to || undefined },
+        cache: false,
       });
 
       setRaw(res?.data || null);
@@ -200,6 +201,7 @@ export default function AdminDashboard() {
       const res = await axiosClient.get(API.GROWTH_SUMMARY, {
         params: { months },
         signal: abortRef.current?.signal,
+        cache: false,
       });
 
       const payload = res?.data?.data ?? res?.data ?? {};

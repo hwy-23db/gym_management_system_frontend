@@ -1,6 +1,7 @@
 import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { logoutApi } from "../api/authApi";
+import { clearRequestCache } from "../api/axiosClient";
 import "./AdminLayout.css";
 
 export default function AdminLayout() {
@@ -12,6 +13,7 @@ export default function AdminLayout() {
     localStorage.removeItem("user");
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");
+    clearRequestCache();
     nav("/login");
   };
 

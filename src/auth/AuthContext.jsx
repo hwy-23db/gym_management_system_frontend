@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { loginApi, meApi, logoutApi } from "../api/authApi";
+import { clearRequestCache } from "../api/axiosClient";
 
 const AuthContext = createContext(null);
 
@@ -44,6 +45,7 @@ export function AuthProvider({ children }) {
       await logoutApi();
     } finally {
       clearSession();
+      clearRequestCache();
     }
   };
 
