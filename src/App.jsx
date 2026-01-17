@@ -19,6 +19,16 @@ const AdminBlogs = lazy(() => import("./pages/admin/AdminBlogs"));
 const UserScan = lazy(() => import("./pages/user/UserScan"));
 const TrainerScan = lazy(() => import("./pages/trainer/TrainerScan"));
 
+//trainer
+const TrainerLayout = lazy (()=>import( "./layouts/TrainerLayout"));
+const TrainerHome = lazy (() =>import ("./pages/trainer/TrainerHome"));
+const TrainerMessages = lazy (() =>import ("./pages/trainer/TrainerMessages"));
+const QrScanner = lazy (() =>import("./pages/common/QrScanner")); 
+const TrainerBookings = lazy (() =>import ("./pages/trainer/TrainerBookings"));
+const TrainerBlogDetails = lazy (() =>import ("./pages/trainer/TrainerBlogDetails"));
+const TrainerSettings = lazy(()=>import("./pages/trainer/TrainerSettings"));
+
+
 function getToken() {
   return localStorage.getItem("token") || sessionStorage.getItem("token");
 }
@@ -99,7 +109,17 @@ export default function App() {
               </RoleOnly>
             </Protected>
           }
-        />
+        >
+
+        <Route index element={<TrainerHome />} />
+        <Route path="home" element={<TrainerHome />} />
+        <Route path="scan" element={<QrScanner />} />
+        <Route path="messages" element={<TrainerMessages />} />
+        <Route path="bookings" element={<TrainerBookings />} />
+        <Route path="blogs/:id" element={<TrainerBlogDetails />} />
+        <Route path="settings" element={<TrainerSettings />} />
+
+        </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

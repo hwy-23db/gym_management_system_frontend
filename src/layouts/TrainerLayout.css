@@ -1,0 +1,113 @@
+/* DARK BLURRED BACKGROUND */
+.trainer-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(
+      circle at top,
+      rgba(40, 40, 45, 0.95),
+      rgba(10, 10, 15, 1)
+    );
+}
+
+/* CONTENT AREA */
+.trainer-content {
+  flex: 1;
+  padding: 16px;
+  padding-bottom: 90px;
+}
+
+/* GLASS CARD STYLE */
+.trainer-content > div {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f1f1f1;
+}
+
+/* HEADINGS */
+.trainer-content h2 {
+  margin-bottom: 8px;
+  color: #ffffff;
+}
+
+/* PARAGRAPHS */
+.trainer-content p {
+  color: #d0d0d0;
+}
+
+/* BOTTOM NAV – GLASS */
+.trainer-bottom-nav {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  height: 70px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-radius: 20px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 50;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* NAV ITEMS */
+.nav-item {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  color: #cfcfcf;
+  text-decoration: none;
+  padding: 10px 0;
+  transition: all 0.2s ease;
+}
+
+.nav-item.active {
+  color: #ffffff;
+  font-weight: 600;
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  font-size: 13px;
+  color: #cfcfcf;
+  text-decoration: none;
+  padding: 12px 0;
+  transition: all 0.2s ease;
+}
+
+.nav-icon {
+  font-size: 18px;
+}
+
+.nav-item.active {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+
+/* TABLET & DESKTOP */
+@media (min-width: 768px) {
+  .trainer-content {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .trainer-bottom-nav {
+    max-width: 520px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
