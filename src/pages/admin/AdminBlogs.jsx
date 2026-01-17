@@ -67,6 +67,18 @@ function statusBadge(status) {
   return <span className="badge rounded-pill bg-secondary-subtle text-secondary">Draft</span>;
 }
 
+function resolveCoverUrl(post) {
+  return (
+    post?.cover_image_url ||
+    post?.cover_image ||
+    post?.cover ||
+    post?.image_url ||
+    post?.image ||
+    null
+  );
+}
+
+
 export default function AdminBlogs() {
   // view: "list" | "form"
   const [view, setView] = useState("list");
@@ -139,7 +151,7 @@ export default function AdminBlogs() {
     setCoverPreview(null);
 
     // cover url from backend admin API (recommend: cover_image_url)
-    setCurrentCoverUrl(post?.cover_image_url || post?.cover_image || post?.cover || null);
+       setCurrentCoverUrl(resolveCoverUrl(post));
 
     setView("form");
   };
@@ -195,7 +207,10 @@ export default function AdminBlogs() {
     form.append("publish_date", effectivePublishDate);
       }
 
-      if (coverFile) form.append("cover_image", coverFile);
+      if (coverFile) {
+        form.append("cover_image", coverFile);
+        form.append("image", coverFile);
+      }
 
       if (editingId) {
         await axiosClient.post(`/blogs/${editingId}?_method=PUT`, form, {
@@ -329,7 +344,15 @@ export default function AdminBlogs() {
                     <label className="form-label fw-bold">Cover Image</label>
 
                     {currentCoverUrl ? (
-                      <div className="small mb-1">
+                      <div className="small mb-2 text-light">
+                        Current cover image
+                        <div className="mt-2">
+                          <img
+                            src={currentCoverUrl}
+                            alt="current cover"
+                            style={{ width: "100%", maxHeight: 180, objectFit: "cover", borderRadius: 8 }}
+                          />
+                        </div>
                         
                       </div>
                     ) : null}
@@ -360,6 +383,12 @@ export default function AdminBlogs() {
                           <img
                             src={coverPreview}
                             alt="cover preview"
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                           ) : currentCoverUrl ? (
+                          <img
+                            src={currentCoverUrl}
+                            alt="current cover"
                             style={{ width: "100%", height: "100%", objectFit: "cover" }}
                           />
                         ) : (
