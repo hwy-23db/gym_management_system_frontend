@@ -1,6 +1,12 @@
-import { NavLink, Outlet, Navigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { FiHome, FiLogIn, FiMessageCircle, FiCalendar, FiSettings } from "react-icons/fi";
+import {
+  FiHome,
+  FiLogIn,
+  FiMessageCircle,
+  FiCalendar,
+  FiSettings,
+} from "react-icons/fi";
 import "./TrainerLayout.css";
 
 export default function TrainerLayout() {
@@ -21,11 +27,8 @@ export default function TrainerLayout() {
           <div>
             <h2>Mobile Only</h2>
             <p>Please open Trainer View on a mobile device.</p>
-            <p style={{ opacity: 0.8, marginTop: 8 }}>
-              (Max width: 767px)
-            </p>
+            <p style={{ opacity: 0.8, marginTop: 8 }}>(Max width: 767px)</p>
 
-            {/* optional quick redirect */}
             <div style={{ marginTop: 14 }}>
               <button
                 onClick={() => (window.location.href = "/")}
@@ -53,13 +56,13 @@ export default function TrainerLayout() {
         <Outlet />
       </main>
 
-      <nav className="trainer-bottom-nav">
+      <nav className="trainer-bottom-nav" aria-label="Trainer bottom navigation">
         <NavLink
           to="/trainer/home"
           className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
         >
           <FiHome className="nav-icon" />
-          <span>Home</span>
+          <span className="nav-label">Home</span>
         </NavLink>
 
         <NavLink
@@ -67,7 +70,7 @@ export default function TrainerLayout() {
           className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
         >
           <FiLogIn className="nav-icon" />
-          <span>Check In</span>
+          <span className="nav-label">Check In</span>
         </NavLink>
 
         <NavLink
@@ -75,7 +78,7 @@ export default function TrainerLayout() {
           className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
         >
           <FiMessageCircle className="nav-icon" />
-          <span>Messages</span>
+          <span className="nav-label">Messages</span>
         </NavLink>
 
         <NavLink
@@ -83,13 +86,15 @@ export default function TrainerLayout() {
           className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
         >
           <FiCalendar className="nav-icon" />
-          <span>Bookings</span>
+          <span className="nav-label">Bookings</span>
         </NavLink>
+
         <NavLink
           to="/trainer/settings"
-          className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}>
+          className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
+        >
           <FiSettings className="nav-icon" />
-          <span>Settings</span>
+          <span className="nav-label">Settings</span>
         </NavLink>
       </nav>
     </div>

@@ -4,17 +4,19 @@
   display: flex;
   flex-direction: column;
   background: radial-gradient(
-      circle at top,
-      rgba(40, 40, 45, 0.95),
-      rgba(10, 10, 15, 1)
-    );
+    circle at top,
+    rgba(40, 40, 45, 0.95),
+    rgba(10, 10, 15, 1)
+  );
 }
 
 /* CONTENT AREA */
 .trainer-content {
   flex: 1;
   padding: 16px;
-  padding-bottom: 90px;
+
+  /* ✅ prevent content from hiding behind bottom nav + safe area */
+  padding-bottom: calc(110px + env(safe-area-inset-bottom));
 }
 
 /* GLASS CARD STYLE */
@@ -40,63 +42,84 @@
   color: #d0d0d0;
 }
 
-/* BOTTOM NAV – GLASS */
+/* ===========================
+   ✅ BEAUTIFUL MOBILE BOTTOM NAV
+   =========================== */
 .trainer-bottom-nav {
   position: fixed;
-  bottom: 12px;
+
+  /* ✅ safe-area aware bottom spacing (iPhone notch/home bar) */
+  bottom: calc(12px + env(safe-area-inset-bottom));
   left: 12px;
   right: 12px;
-  height: 70px;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-radius: 20px;
+
+  height: 68px;
+  border-radius: 18px;
+
   display: flex;
-  justify-content: space-around;
   align-items: center;
-  z-index: 50;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  justify-content: space-between;
+
+  padding: 8px 10px;
+
+  background: linear-gradient(
+    180deg,
+    rgba(24, 26, 32, 0.92),
+    rgba(12, 13, 16, 0.92)
+  );
+
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  z-index: 9999;
+}
+
+/* NAV ITEMS (icon on top, label below) */
+.nav-item {
+  flex: 1;
+  height: 100%;
+
+  display: flex;
+  flex-direction: column; /* ✅ THIS FIXES ALIGNMENT */
+  align-items: center;
+  justify-content: center;
+
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.72);
+
+  border-radius: 14px;
+  transition: transform 120ms ease, background 120ms ease, color 120ms ease;
+}
+
+/* ICON */
+.nav-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* LABEL */
+.nav-label {
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.2px;
+}
+
+/* ACTIVE STATE */
+.nav-item.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.10);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-/* NAV ITEMS */
-.nav-item {
-  flex: 1;
-  text-align: center;
-  font-size: 13px;
-  color: #cfcfcf;
-  text-decoration: none;
-  padding: 10px 0;
-  transition: all 0.2s ease;
+/* TAP FEEDBACK */
+.nav-item:active {
+  transform: scale(0.98);
 }
-
-.nav-item.active {
-  color: #ffffff;
-  font-weight: 600;
-}
-.nav-item {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  text-align: center;
-  font-size: 13px;
-  color: #cfcfcf;
-  text-decoration: none;
-  padding: 12px 0;
-  transition: all 0.2s ease;
-}
-
-.nav-icon {
-  font-size: 18px;
-}
-
-.nav-item.active {
-  color: #ffffff;
-  font-weight: 600;
-}
-
 
 /* TABLET & DESKTOP */
 @media (min-width: 768px) {
@@ -108,6 +131,7 @@
   .trainer-bottom-nav {
     max-width: 520px;
     left: 50%;
+    right: auto;
     transform: translateX(-50%);
   }
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axiosClient from "../../api/axiosClient";
+import { FaCalendar, FaClock } from "react-icons/fa";
 
 /**
  * Endpoint:
@@ -13,6 +14,7 @@ import axiosClient from "../../api/axiosClient";
  *        member_name | member:{name},
  *        date | start_date,
  *        time | start_time,
+ *        session_datetime (common: "YYYY-MM-DD HH:mm:ss"),
  *        status,
  *        note
  *      }
@@ -21,34 +23,76 @@ import axiosClient from "../../api/axiosClient";
  */
 
 function getMemberName(b) {
-  return (
-    b?.member_name ||
-    b?.member?.name ||
-    b?.user?.name ||
-    "—"
-  );
+  return b?.member_name || b?.member?.name || b?.user?.name || "—";
 }
 
+/** ✅ NEW: parse backend datetime safely (supports "YYYY-MM-DD HH:mm:ss" and ISO) */
+function parseBackendDateTime(value) {
+  if (!value) return null;
+  const str = String(value);
+  const normalized = str.includes("T") ? str : str.replace(" ", "T");
+  const d = new Date(normalized);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function formatISODate(d) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/** ✅ UPDATED: supports session_datetime + more fallbacks */
 function getDate(b) {
-  return (
-    b?.date ||
-    b?.start_date ||
-    (b?.start_time ? b.start_time.slice(0, 10) : "")
-  );
+  const dtRaw =
+    b?.session_datetime ||
+    b?.session_time ||
+    b?.datetime ||
+    b?.date_time ||
+    b?.starts_at ||
+    b?.start_time;
+
+  const d = parseBackendDateTime(dtRaw);
+  if (d) return formatISODate(d);
+
+  // fallback if backend provides a pure date field
+  if (b?.date) return b.date;
+  if (b?.start_date) return b.start_date;
+
+  // fallback if string contains date at beginning
+  if (typeof dtRaw === "string" && dtRaw.length >= 10) return dtRaw.slice(0, 10);
+
+  return "";
 }
 
+/** ✅ UPDATED: supports session_datetime + more fallbacks */
 function getTime(b) {
-  if (!b?.time && !b?.start_time) return "—";
+  const dtRaw =
+    b?.session_datetime ||
+    b?.session_time ||
+    b?.datetime ||
+    b?.date_time ||
+    b?.starts_at ||
+    b?.start_time;
 
-  if (b?.start_time) {
-    const d = new Date(b.start_time);
-    if (!Number.isNaN(d.getTime())) {
-      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    }
-    return b.start_time;
+  const d = parseBackendDateTime(dtRaw);
+  if (d) {
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
-  return b.time;
+  // fallback if backend provides a pure time field
+  if (b?.time) return b.time;
+
+  // fallback if string looks like time or includes time part
+  if (typeof dtRaw === "string") {
+    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(dtRaw)) return dtRaw; // "10:30" or "10:30:00"
+    const maybe = dtRaw.split(" ")[1] || dtRaw.split("T")[1]; // "YYYY-MM-DD HH:mm:ss" or ISO
+    if (maybe) return maybe;
+  }
+
+  return "—";
 }
 
 export default function TrainerBooking() {
@@ -84,8 +128,7 @@ export default function TrainerBooking() {
   const filtered = useMemo(() => {
     return bookings.filter((b) => {
       const nameMatch =
-        !search ||
-        getMemberName(b).toLowerCase().includes(search.toLowerCase());
+        !search || getMemberName(b).toLowerCase().includes(search.toLowerCase());
 
       const dateMatch = !date || getDate(b) === date;
 
@@ -196,9 +239,7 @@ export default function TrainerBooking() {
           {filtered.map((b, i) => (
             <div key={b.id ?? i} style={cardStyle}>
               <div className="d-flex justify-content-between">
-                <div style={{ fontWeight: 900 }}>
-                  {getMemberName(b)}
-                </div>
+                <div style={{ fontWeight: 900 }}>{getMemberName(b)}</div>
                 <span style={statusPill(b.status)}>
                   {String(b.status || "ACTIVE").toUpperCase()}
                 </span>
@@ -206,10 +247,10 @@ export default function TrainerBooking() {
 
               <div className="mt-2 d-flex gap-2 flex-wrap">
                 <span style={pill("rgba(255,255,255,0.12)")}>
-                  📅 {getDate(b) || "—"}
+                  <FaCalendar/> {getDate(b) || "—"}
                 </span>
                 <span style={pill("rgba(255,255,255,0.12)")}>
-                  ⏰ {getTime(b)}
+                  <FaClock/> {getTime(b)}
                 </span>
               </div>
 
