@@ -3,35 +3,63 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 function getServerOrigin() {
   const apiBase =
-    import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+    import.meta.env.VITE_API_URL || "https://api.unityfitnessmyanmar.online/api";
   return apiBase.replace(/\/api\/?$/, "");
 }
 
+function isPlaceholderImage(value) {
+  if (!value) return true;
+  const text = String(value).trim().toLowerCase();
+  return (
+    text === "attach photo" ||
+    text === "attach image" ||
+    text === "no image" ||
+    text === "null"
+  );
+}
+
+function buildImageUrl(value) {
+  if (!value || isPlaceholderImage(value)) return null;
+  const raw = String(value).trim();
+  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+    return raw;
+  }
+
+  const origin = getServerOrigin();
+  const cleaned = raw.replace(/^\/+/, "");
+
+  if (cleaned.startsWith("storage/")) {
+    return `${origin}/${cleaned}`;
+  }
+
+    if (cleaned.startsWith("blogs/")) {
+    return `${origin}/storage/${cleaned}`;
+  }
+
+  if (raw.startsWith("/storage/")) {
+    return `${origin}${raw}`;
+  }
+
+    return `${origin}/storage/${cleaned}`;
+}
+
 function resolveBlogImage(blog) {
-  const url =
-    blog?.cover_image_url ||
-    blog?.coverImageUrl ||
-    blog?.image_url ||
-    blog?.imageUrl ||
-    null;
-
-  if (url && (String(url).startsWith("http://") || String(url).startsWith("https://"))) {
-    return String(url);
-  }
-
-  const path =
-    blog?.cover_image_path ||
-    blog?.coverImagePath ||
-    blog?.cover_image ||
-    blog?.coverImage ||
-    null;
-
-  if (path) {
-    const p = String(path).replace(/^\/+/, "");
-    return `${getServerOrigin()}/storage/${p}`;
-  }
-
-  return null;
+  return (
+    buildImageUrl(
+      blog?.cover_image_url ||
+        blog?.coverImageUrl ||
+        blog?.image_url ||
+        blog?.imageUrl
+    ) ||
+    buildImageUrl(
+      blog?.cover_image_path ||
+        blog?.coverImagePath ||
+        blog?.cover_image ||
+        blog?.coverImage ||
+        blog?.image ||
+        blog?.image_path
+    )
+  );
 }
 
 export default function TrainerBlogDetails() {

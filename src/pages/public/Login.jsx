@@ -69,9 +69,9 @@ export default function Login() {
       if (role === "administrator" || role === "admin") {
         navigate("/admin/dashboard", { replace: true });
       } else if (role === "trainer") {
-        navigate("/trainer/scan", { replace: true });
+        navigate("/trainer/home", { replace: true });
       } else {
-        navigate("/user/scan", { replace: true });
+        navigate("/user/home", { replace: true });
       }
     } catch (err) {
       // show server message if present

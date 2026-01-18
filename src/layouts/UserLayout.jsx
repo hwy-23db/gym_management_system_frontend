@@ -1,105 +1,111 @@
-import React from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { logoutApi } from "../api/authApi";
+import { NavLink, Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
+import {
+  FiHome,
+  FiCheckSquare,
+  FiRepeat,
+  FiCalendar,
+  FiMessageCircle,
+  FiSettings,
+} from "react-icons/fi";
 import "./UserLayout.css";
 
-function getUser() {
-  const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
-  return raw ? JSON.parse(raw) : null;
-}
-
 export default function UserLayout() {
-  const nav = useNavigate();
-  const user = getUser();
+  const [isMobile, setIsMobile] = useState(true);
 
-  const logout = async () => {
-    try {
-      await logoutApi();
-    } catch {}
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
-    nav("/login");
-  };
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 767);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
-  return (
-    <div className="user-shell d-flex">
-      <aside className="user-sidebar">
-        <div className="d-flex align-items-center gap-2 mb-4">
-          <div className="user-logo">
-            <i className="bi bi-activity"></i>
-          </div>
+  // Mobile only (same as Trainer)
+  if (!isMobile) {
+    return (
+      <div className="user-shell">
+        <main className="user-content">
           <div>
-            <div className="user-brand">UNITY FITNESS</div>
-            <div className="user-subtitle">Member Panel</div>
-          </div>
-        </div>
+            <h2>User View</h2>
+            <p>Please open User View on a mobile device.</p>
+            <p style={{ opacity: 0.8, marginTop: 8 }}>(Max width: 767px)</p>
 
-        <nav className="user-nav d-flex flex-column gap-2">
-          <NavLink
-            to="/user/home"
-            className={({ isActive }) =>
-              `user-nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            <i className="bi bi-house"></i> Home
-          </NavLink>
-          <NavLink
-            to="/user/check-in"
-            className={({ isActive }) =>
-              `user-nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            <i className="bi bi-qr-code-scan"></i> Check-in
-          </NavLink>
-          <NavLink
-            to="/user/subscriptions"
-            className={({ isActive }) =>
-              `user-nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            <i className="bi bi-credit-card"></i> Subscriptions
-          </NavLink>
-          <NavLink
-            to="/user/messages"
-            className={({ isActive }) =>
-              `user-nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            <i className="bi bi-chat-dots"></i> Messages
-          </NavLink>
-          <NavLink
-            to="/user/settings"
-            className={({ isActive }) =>
-              `user-nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            <i className="bi bi-gear"></i> Settings
-          </NavLink>
-        </nav>
-
-        <button className="btn btn-outline-secondary w-100 mt-4" onClick={logout}>
-          <i className="bi bi-box-arrow-right me-2"></i> Logout
-        </button>
-      </aside>
-
-      <main className="user-main">
-        <div className="user-topbar d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
-          <div>
-            <div className="fw-semibold">Welcome back{user?.name ? "," : ""}</div>
-            <div className="text-muted small">
-              {user?.name || "Manage your fitness journey"}
+            <div style={{ marginTop: 14 }}>
+              <button
+                onClick={() => (window.location.href = "/")}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: "rgba(255,255,255,0.08)",
+                  color: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                Go Back
+              </button>
             </div>
           </div>
-          <div className="text-muted small d-flex align-items-center gap-2">
-            <i className="bi bi-shield-check"></i>
-            <span>Secure Member Access</span>
-          </div>
-        </div>
+        </main>
+      </div>
+    );
+  }
 
+  return (
+    <div className="user-shell">
+      <main className="user-content">
         <Outlet />
       </main>
+
+      <nav className="user-bottom-nav" aria-label="User bottom navigation">
+        <NavLink
+          to="/user/home"
+          className={({ isActive }) => "user-nav-item" + (isActive ? " active" : "")}
+        >
+          <FiHome className="user-nav-icon" />
+          <span className="user-nav-label">Home</span>
+        </NavLink>
+
+        <NavLink
+          to="/user/attendance"
+          className={({ isActive }) => "user-nav-item" + (isActive ? " active" : "")}
+        >
+          <FiCheckSquare className="user-nav-icon" />
+          <span className="user-nav-label">Attendance</span>
+        </NavLink>
+
+        <NavLink
+          to="/user/subscriptions"
+          className={({ isActive }) => "user-nav-item" + (isActive ? " active" : "")}
+        >
+          <FiRepeat className="user-nav-icon" />
+          <span className="user-nav-label">Subs</span>
+        </NavLink>
+
+        <NavLink
+          to="/user/bookings"
+          className={({ isActive }) => "user-nav-item" + (isActive ? " active" : "")}
+        >
+          <FiCalendar className="user-nav-icon" />
+          <span className="user-nav-label">Booking</span>
+        </NavLink>
+
+        <NavLink
+          to="/user/messages"
+          className={({ isActive }) => "user-nav-item" + (isActive ? " active" : "")}
+        >
+          <FiMessageCircle className="user-nav-icon" />
+          <span className="user-nav-label">Messages</span>
+        </NavLink>
+
+        <NavLink
+          to="/user/settings"
+          className={({ isActive }) => "user-nav-item" + (isActive ? " active" : "")}
+        >
+          <FiSettings className="user-nav-icon" />
+          <span className="user-nav-label">Settings</span>
+        </NavLink>
+      </nav>
     </div>
   );
 }

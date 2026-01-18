@@ -27,6 +27,15 @@ const TrainerBookings = lazy (() =>import ("./pages/trainer/TrainerBookings"));
 const TrainerBlogDetails = lazy (() =>import ("./pages/trainer/TrainerBlogDetails"));
 const TrainerSettings = lazy(()=>import("./pages/trainer/TrainerSettings"));
 
+//user
+const UserLayout = lazy(() => import("./layouts/UserLayout"));
+const UserHome = lazy(() => import("./pages/user/UserHome"));
+const UserAttendance = lazy(() => import("./pages/user/UserAttendance"));
+const UserSubscriptions = lazy(() => import("./pages/user/UserSubscriptions"));
+const UserBookings = lazy(() => import("./pages/user/UserBookings"));
+const UserMessages = lazy(() => import("./pages/user/UserMessages"));
+const UserSettings = lazy(() => import("./pages/user/UserSettings"));
+
 
 function getToken() {
   return localStorage.getItem("token") || sessionStorage.getItem("token");
@@ -97,6 +106,15 @@ export default function App() {
             </Protected>
           }
         />
+
+        <Route index element={<UserHome />} />
+          <Route path="home" element={<UserHome />} />
+          <Route path="attendance" element={<UserAttendance />} />
+          <Route path="subscriptions" element={<UserSubscriptions />} />
+          <Route path="bookings" element={<UserBookings />} />
+          <Route path="messages" element={<UserMessages />} />
+          <Route path="settings" element={<UserSettings />} />
+
 
         {/* Trainer (mobile page) */}
         <Route

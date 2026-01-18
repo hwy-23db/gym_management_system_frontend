@@ -25,31 +25,59 @@ function getServerOrigin() {
  *
  * Also supports common variants just in case.
  */
+function isPlaceholderImage(value) {
+  if (!value) return true;
+  const text = String(value).trim().toLowerCase();
+  return (
+    text === "attach photo" ||
+    text === "attach image" ||
+    text === "no image" ||
+    text === "null"
+  );
+}
+
+function buildImageUrl(value) {
+  if (!value || isPlaceholderImage(value)) return null;
+  const raw = String(value).trim();
+  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+    return raw;
+  }
+
+  const origin = getServerOrigin();
+  const cleaned = raw.replace(/^\/+/, "");
+
+  if (cleaned.startsWith("storage/")) {
+    return `${origin}/${cleaned}`;
+  }
+
+ if (cleaned.startsWith("blogs/")) {
+    return `${origin}/storage/${cleaned}`;
+  }
+
+    if (raw.startsWith("/storage/")) {
+    return `${origin}${raw}`;
+  }
+
+  return `${origin}/storage/${cleaned}`;
+}
+
 function resolveBlogImage(blog) {
-  const url =
-    blog?.cover_image_url ||
-    blog?.coverImageUrl ||
-    blog?.image_url ||
-    blog?.imageUrl ||
-    null;
-
-  if (url && (String(url).startsWith("http://") || String(url).startsWith("https://"))) {
-    return String(url);
-  }
-
-  const path =
-    blog?.cover_image_path ||
-    blog?.coverImagePath ||
-    blog?.cover_image ||
-    blog?.coverImage ||
-    null;
-
-  if (path) {
-    const p = String(path).replace(/^\/+/, ""); // remove leading /
-    return `${getServerOrigin()}/storage/${p}`;
-  }
-
-  return null;
+  return (
+    buildImageUrl(
+      blog?.cover_image_url ||
+        blog?.coverImageUrl ||
+        blog?.image_url ||
+        blog?.imageUrl
+    ) ||
+    buildImageUrl(
+      blog?.cover_image_path ||
+        blog?.coverImagePath ||
+        blog?.cover_image ||
+        blog?.coverImage ||
+        blog?.image ||
+        blog?.image_path
+    )
+  );
 }
 
 function BlogCardImage({ src, alt }) {
@@ -104,7 +132,6 @@ export default function TrainerHome() {
 
         // ✅ debug: check what fields the API list actually returns
         if (import.meta.env.DEV && list?.[0]) {
-          // eslint-disable-next-line no-console
           console.log("BLOG[0] from GET /blogs:", list[0]);
         }
 
