@@ -18,6 +18,26 @@ function findLastCheckInTimestamp(scans) {
   return null;
 }
 
+function buildResultFromScans(latestScan, recentScans) {
+  if (!latestScan?.action) return null;
+  if (latestScan.action === "check_in") {
+    return {
+      action: latestScan.action,
+      checkInTime: latestScan.timestamp,
+      checkOutTime: null,
+    };
+  }
+  if (latestScan.action === "check_out") {
+    return {
+      action: latestScan.action,
+      checkInTime: findLastCheckInTimestamp(recentScans),
+      checkOutTime: latestScan.timestamp,
+    };
+  }
+  return null;
+}
+
+
 export default function TrainerScan() {
   const isMobile = useMemo(() => window.innerWidth < 768, []);
   const [busy, setBusy] = useState(false);
@@ -46,8 +66,11 @@ export default function TrainerScan() {
     (async () => {
       try {
         const res = await axiosClient.get("/trainer/check-in");
-        setLatestScan(res?.data?.latest_scan || null);
-        setRecentScans(res?.data?.recent_scans || []);
+        const fetchedLatest = res?.data?.latest_scan || null;
+        const fetchedRecent = res?.data?.recent_scans || [];
+        setLatestScan(fetchedLatest);
+        setRecentScans(fetchedRecent);
+        setResult(buildResultFromScans(fetchedLatest, fetchedRecent));
       } catch (e) {
         setStatusMsg({
           type: "warning",
@@ -56,6 +79,12 @@ export default function TrainerScan() {
       }
     })();
   }, [isMobile]);
+
+  useEffect(() => {
+    if (!latestScan?.action) return;
+    setResult(buildResultFromScans(latestScan, recentScans));
+  }, [latestScan, recentScans]);
+
 
   // ✅ TrainerScan controls workflow: API call + UI messages
   const handleDecode = async (decodedText) => {
