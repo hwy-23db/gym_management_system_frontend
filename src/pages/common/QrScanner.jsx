@@ -1,19 +1,20 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import React, { useEffect, useRef ,useState } from "react";
+import { Html5QrcodeScanner } from "html5-qrcode";
 import axiosClient from "../../api/axiosClient";
 import { parseTokenFromQrText } from "../../utils/qr";
 
 export default function QrScanner({ role, onDecode, cooldownMs = 1200 }) {
   const [msg, setMsg] = useState(null);
   const busyRef = useRef(false);
-  const scannerRef = useRef(null);
-  const startedRef = useRef(false);
 
   useEffect(() => {
-    const scanner = new Html5Qrcode("qr-reader");
-    scannerRef.current = scanner;
+    const scanner = new Html5QrcodeScanner(
+      "qr-reader",
+      { fps: 10, qrbox: 250 },
+      false
+    );
 
-    const handleDecode = async (decodedText) => {
+    scanner.render(async (decodedText) => {
       if (busyRef.current) return;
 
       if (onDecode) {
@@ -27,30 +28,20 @@ export default function QrScanner({ role, onDecode, cooldownMs = 1200 }) {
         }
         return;
       }
-      busyRef.current = true;
       const parsed = parseTokenFromQrText(decodedText);
 
       if (!parsed) {
         setMsg({ type: "danger", text: "Invalid QR. Please scan the gym QR code." });
-        setTimeout(() => {
-          busyRef.current = false;
-        }, cooldownMs);
         return;
       }
 
       // Optional safety: enforce scanning correct type QR
       if (parsed.type && role === "user" && parsed.type !== "user") {
         setMsg({ type: "warning", text: "Please scan the Member QR code." });
-        setTimeout(() => {
-          busyRef.current = false;
-        }, cooldownMs);
         return;
       }
       if (parsed.type && role === "trainer" && parsed.type !== "trainer") {
         setMsg({ type: "warning", text: "Please scan the Trainer QR code." });
-        setTimeout(() => {
-          busyRef.current = false;
-        }, cooldownMs);
         return;
       }
 
@@ -67,57 +58,13 @@ export default function QrScanner({ role, onDecode, cooldownMs = 1200 }) {
           type: "danger",
           text: e?.response?.data?.message || "Scan failed.",
         });
-      } finally {        setTimeout(() => {
-          busyRef.current = false;
-        }, cooldownMs);
+      } finally {
+        scanner.clear().catch(() => {});
       }
-    };
+    });
 
-    const startScanner = async () => {
-      try {
-        const cameras = await Html5Qrcode.getCameras();
-        if (!cameras || cameras.length === 0) {
-          setMsg({ type: "warning", text: "No camera found on this device." });
-          return;
-        }
-
-        const preferredCamera =
-          cameras.find((camera) => camera.label.toLowerCase().includes("back")) || cameras[0];
-
-        await scanner.start(
-          preferredCamera.id,
-          { fps: 10, qrbox: { width: 240, height: 240 } },
-          handleDecode,
-          () => {}
-        );
-
-        startedRef.current = true;
-      } catch (e) {
-        setMsg({
-          type: "danger",
-          text: e?.message || "Unable to start camera scanner.",
-        });
-      }
-    };
-
-    startScanner();
-
-    return () => {
-      if (scannerRef.current) {
-        const current = scannerRef.current;
-        scannerRef.current = null;
-        if (startedRef.current) {
-          current
-            .stop()
-            .then(() => current.clear())
-            .catch(() => {});
-        } else {
-          current.clear().catch(() => {});
-        }
-      }
-      startedRef.current = false;
-    };
-  }, [cooldownMs, onDecode, role]);
+    return () => scanner.clear().catch(() => {});
+   }, [cooldownMs, onDecode, role]);
 
   return (
     <div className="container py-4" style={{ maxWidth: 720 }}>
@@ -125,11 +72,7 @@ export default function QrScanner({ role, onDecode, cooldownMs = 1200 }) {
 
       {msg && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
 
-      <div
-        id="qr-reader"
-        className="border rounded p-2 bg-light d-flex justify-content-center"
-        style={{ minHeight: 260 }}
-      />
+      <div id="qr-reader" className="border rounded p-2 bg-light" />
       <div className="text-muted small mt-2">
         Scan twice: first = check-in, second = check-out.
       </div>
