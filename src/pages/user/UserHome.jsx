@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getBlogs } from "../../api/UserApi";
+import { getBlogs } from "../../api/userApi";
 
 function normalizeList(payload) {
   if (Array.isArray(payload)) return payload;
