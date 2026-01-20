@@ -1,0 +1,129 @@
+/* =========================================================
+   src/common/qr-scanner.css
+   Modern QR scanner UI + permission overlay + stable height
+   ========================================================= */
+
+.qr-frame {
+  position: relative;
+  width: 100%;
+  min-height: 320px; /* ensures visible box before permission */
+  border-radius: 18px;
+  overflow: hidden;
+  background: #05070d;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+/* The html5-qrcode library injects <video> here */
+.qr-video,
+.qr-video > div,
+.qr-video video,
+.qr-video canvas {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.qr-video video {
+  height: 100% !important;
+  min-height: 320px;
+  object-fit: cover !important;
+  background: #000;
+}
+
+/* Always visible overlay (scanner frame) */
+.qr-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-box {
+  width: 74%;
+  max-width: 340px;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45) inset;
+  position: relative;
+}
+
+/* Scan line */
+.qr-scanline {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  animation: qr-scanline 2.2s linear infinite;
+}
+
+@keyframes qr-scanline {
+  0% {
+    transform: translateY(0);
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(100% - 24px));
+    opacity: 0.85;
+  }
+}
+
+/* Permission overlay (your UI, not the browser popup)
+   This covers the video area until camera starts */
+.qr-permission-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  padding: 18px;
+}
+
+.qr-permission-card {
+  text-align: center;
+  color: #fff;
+  width: 100%;
+  max-width: 320px;
+  padding: 18px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.qr-icon {
+  font-size: 44px;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.qr-title {
+  font-weight: 800;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.qr-subtitle {
+  font-size: 13px;
+  opacity: 0.88;
+  margin: 0;
+}
+
+/* Optional: hide some html5-qrcode extra UI if it appears */
+#qr-shaded-region,
+#qr-canvas,
+#reader__dashboard_section,
+.html5-qrcode-element {
+  display: none !important;
+}
