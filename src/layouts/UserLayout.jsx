@@ -2,10 +2,9 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
   FiHome,
-  FiLogin,
-  FiRepeat,
-  FiCalendar,
+  FiLogIn,
   FiMessageCircle,
+  FiCalendar,
   FiSettings,
 } from "react-icons/fi";
 import "./UserLayout.css";
@@ -20,13 +19,13 @@ export default function UserLayout() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Mobile only (same as Trainer)
+  // ✅ mobile-only user view
   if (!isMobile) {
     return (
       <div className="user-shell">
         <main className="user-content">
           <div>
-            <h2>User View</h2>
+            <h2>Mobile Only</h2>
             <p>Please open User View on a mobile device.</p>
             <p style={{ opacity: 0.8, marginTop: 8 }}>(Max width: 767px)</p>
 

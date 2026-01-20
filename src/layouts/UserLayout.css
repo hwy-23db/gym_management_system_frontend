@@ -1,3 +1,4 @@
+/* DARK BLURRED BACKGROUND */
 .user-shell {
   min-height: 100vh;
   display: flex;
@@ -9,14 +10,16 @@
   );
 }
 
+/* CONTENT AREA */
 .user-content {
   flex: 1;
   padding: 16px;
 
-  /* keep content above bottom bar */
-  padding-bottom: calc(120px + env(safe-area-inset-bottom));
+  /* ✅ prevent content from hiding behind bottom nav + safe area */
+  padding-bottom: calc(110px + env(safe-area-inset-bottom));
 }
 
+/* GLASS CARD STYLE */
 .user-content > div {
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(14px);
@@ -28,9 +31,24 @@
   color: #f1f1f1;
 }
 
-/* ✅ Bottom Nav */
+/* HEADINGS */
+.user-content h2 {
+  margin-bottom: 8px;
+  color: #ffffff;
+}
+
+/* PARAGRAPHS */
+.user-content p {
+  color: #d0d0d0;
+}
+
+/* ===========================
+   ✅ BEAUTIFUL MOBILE BOTTOM NAV
+   =========================== */
 .user-bottom-nav {
   position: fixed;
+
+  /* ✅ safe-area aware bottom spacing (iPhone notch/home bar) */
   bottom: calc(12px + env(safe-area-inset-bottom));
   left: 12px;
   right: 12px;
@@ -59,13 +77,13 @@
   z-index: 9999;
 }
 
-/* ✅ Perfect alignment */
-.user-nav-item {
+/* NAV ITEMS (icon on top, label below) */
+.nav-item {
   flex: 1;
   height: 100%;
 
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* ✅ THIS FIXES ALIGNMENT */
   align-items: center;
   justify-content: center;
 
@@ -76,12 +94,14 @@
   transition: transform 120ms ease, background 120ms ease, color 120ms ease;
 }
 
-.user-nav-icon {
+/* ICON */
+.nav-icon {
   font-size: 18px;
   line-height: 1;
 }
 
-.user-nav-label {
+/* LABEL */
+.nav-label {
   margin-top: 5px;
   font-size: 11px;
   font-weight: 700;
@@ -89,16 +109,19 @@
   letter-spacing: 0.2px;
 }
 
-.user-nav-item.active {
+/* ACTIVE STATE */
+.nav-item.active {
   color: #ffffff;
   background: rgba(255, 255, 255, 0.10);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.user-nav-item:active {
+/* TAP FEEDBACK */
+.nav-item:active {
   transform: scale(0.98);
 }
 
+/* TABLET & DESKTOP */
 @media (min-width: 768px) {
   .user-content {
     max-width: 520px;
