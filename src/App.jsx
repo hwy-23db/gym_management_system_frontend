@@ -16,10 +16,8 @@ const AdminAttendance = lazy(() => import("./pages/admin/AdminAttendance"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const AdminBlogs = lazy(() => import("./pages/admin/AdminBlogs"));
 
-const UserScan = lazy(() => import("./pages/user/UserScan"));
-const TrainerScan = lazy(() => import("./pages/trainer/TrainerScan"));
-
 //trainer
+const TrainerScan = lazy(() => import("./pages/trainer/TrainerScan"));
 const TrainerLayout = lazy (()=>import( "./layouts/TrainerLayout"));
 const TrainerHome = lazy (() =>import ("./pages/trainer/TrainerHome"));
 const TrainerMessages = lazy (() =>import ("./pages/trainer/TrainerMessages"));
@@ -27,14 +25,15 @@ const TrainerBookings = lazy (() =>import ("./pages/trainer/TrainerBookings"));
 const TrainerBlogDetails = lazy (() =>import ("./pages/trainer/TrainerBlogDetails"));
 const TrainerSettings = lazy(()=>import("./pages/trainer/TrainerSettings"));
 
-// //user
-// const UserLayout = lazy(() => import("./layouts/UserLayout"));
-// const UserHome = lazy(() => import("./pages/user/UserHome"));
-// const UserAttendance = lazy(() => import("./pages/user/UserAttendance"));
-// const UserSubscriptions = lazy(() => import("./pages/user/UserSubscriptions"));
-// const UserBookings = lazy(() => import("./pages/user/UserBookings"));
-// const UserMessages = lazy(() => import("./pages/user/UserMessages"));
-// const UserSettings = lazy(() => import("./pages/user/UserSettings"));
+ //user
+ const UserScan = lazy(() => import("./pages/user/UserScan"));
+ const UserLayout = lazy(() => import("./layouts/UserLayout"));
+ const UserHome = lazy(() => import("./pages/user/UserHome"));
+ const UserAttendance = lazy(() => import("./pages/user/UserBlogDetails"));
+ const UserSubscriptions = lazy(() => import("./pages/user/UserSubscriptions"));
+ const UserBookings = lazy(() => import("./pages/user/UserBookings"));
+ const UserMessages = lazy(() => import("./pages/user/UserMessages"));
+ const UserSettings = lazy(() => import("./pages/user/UserSettings"));
 
 
 function getToken() {
@@ -96,24 +95,25 @@ export default function App() {
 
 
         {/* User (mobile page) */}
-        <Route
-          path="/user/scan"
+        <Routes
+          path="/user"
           element={
             <Protected>
               <RoleOnly role="user">
-                <UserScan />
+                <UserLayout />
               </RoleOnly>
             </Protected>
           }
-        />
+          >
 
-        {/* <Route index element={<UserHome />} />
+          <Route index element={<UserHome />} />
           <Route path="home" element={<UserHome />} />
-          <Route path="attendance" element={<UserAttendance />} />
+          <Route path="scan" element={<UserScan />} />
           <Route path="subscriptions" element={<UserSubscriptions />} />
           <Route path="bookings" element={<UserBookings />} />
           <Route path="messages" element={<UserMessages />} />
-          <Route path="settings" element={<UserSettings />} /> */}
+          <Route path="settings" element={<UserSettings />} />
+          </Routes>
 
 
         {/* Trainer (mobile page) */}
