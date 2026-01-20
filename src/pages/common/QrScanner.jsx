@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useId } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import "../common/qr-scanner.css";
+import "./qr-scannser.css";
 import { FaCamera } from "react-icons/fa";
 
 /**
