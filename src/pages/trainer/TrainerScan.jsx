@@ -10,6 +10,26 @@ function formatTime(iso) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function isSameDay(left, right) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+
+function isToday(iso) {
+  if (!iso) return false;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return false;
+  return isSameDay(d, new Date());
+}
+
+function getRecordTimestamp(record) {
+  return record?.timestamp || record?.created_at || record?.updated_at || null;
+}
+
+
 export default function TrainerScan() {
   const isMobile = useMemo(() => window.innerWidth < 768, []);
   const busyRef = useRef(false);
@@ -32,11 +52,16 @@ export default function TrainerScan() {
         const res = await axiosClient.get("/trainer/check-in");
         // adjust if your API keys differ
         const l = res?.data?.latest_scan || null;
-        setLatest(l);
+        const latestTimestamp = getRecordTimestamp(l);
+        const latestIsToday = isToday(latestTimestamp);
+
+        setLatest(latestIsToday ? l : null);
 
         // If your backend already returns these, use them:
-        setCheckInTime(res?.data?.last_check_in || null);
-        setCheckOutTime(res?.data?.last_check_out || null);
+        const lastIn = res?.data?.last_check_in || null;
+        const lastOut = res?.data?.last_check_out || null;
+        setCheckInTime(isToday(lastIn) ? lastIn : null);
+        setCheckOutTime(isToday(lastOut) ? lastOut : null);
 
         // If latest is check_in and there's no checkout yet, keep scanning
         // If latest is check_out, still allow scanning (you can decide)
@@ -72,12 +97,12 @@ export default function TrainerScan() {
 
       const record = res?.data?.record || null;
       const action = record?.action;
-      const timestamp = record?.timestamp;
+      const timestamp = getRecordTimestamp(record);
 
-      setLatest(record);
+      setLatest(isToday(timestamp) ? record : null);
 
       if (action === "check_in") {
-        setCheckInTime(timestamp);
+        setCheckInTime(isToday(timestamp) ? timestamp : null);
         setCheckOutTime(null);
         setStatusMsg({
           type: "success",

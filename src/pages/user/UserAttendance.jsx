@@ -10,6 +10,26 @@ function formatTime(iso) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function isSameDay(left, right) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+
+function isToday(iso) {
+  if (!iso) return false;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return false;
+  return isSameDay(d, new Date());
+}
+
+function getRecordTimestamp(record) {
+  return record?.timestamp || record?.created_at || record?.updated_at || null;
+}
+
+
 export default function UserAttendance() {
   const isMobile = useMemo(() => window.innerWidth < 768, []);
   const busyRef = useRef(false);
@@ -42,9 +62,12 @@ export default function UserAttendance() {
 
         if (!alive) return;
 
-        setLatest(latestScan);
-        setCheckInTime(lastIn);
-        setCheckOutTime(lastOut);
+        const latestTimestamp = getRecordTimestamp(latestScan);
+        const latestIsToday = isToday(latestTimestamp);
+
+        setLatest(latestIsToday ? latestScan : null);
+        setCheckInTime(isToday(lastIn) ? lastIn : null);
+        setCheckOutTime(isToday(lastOut) ? lastOut : null);
       } catch (e) {
         if (!alive) return;
         setStatusMsg({
@@ -82,12 +105,12 @@ export default function UserAttendance() {
 
       const record = res?.data?.record || null;
       const action = record?.action;
-      const timestamp = record?.timestamp;
+      const timestamp = getRecordTimestamp(record);
 
-      setLatest(record);
+      setLatest(isToday(timestamp) ? record : null);
 
       if (action === "check_in") {
-        setCheckInTime(timestamp);
+        setCheckInTime(isToday(timestamp) ? timestamp : null);
         setCheckOutTime(null);
         setStatusMsg({
           type: "success",

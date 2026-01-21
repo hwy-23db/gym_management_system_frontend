@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axiosClient from "../../api/axiosClient";
-import { FaCalendar, FaClock } from "react-icons/fa";
+import { FaCalendar, FaClock, FaPhoneAlt, FaUser } from "react-icons/fa";
 
 /**
  * Endpoint:
@@ -101,6 +101,7 @@ export default function TrainerBooking() {
   const [error, setError] = useState(null);
 
   const [bookings, setBookings] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
 
   // filters
   const [search, setSearch] = useState("");
@@ -160,6 +161,18 @@ export default function TrainerBooking() {
     if (s.includes("complete")) return pill("rgba(25,135,84,0.35)");
     if (s.includes("pending")) return pill("rgba(255,193,7,0.35)");
     return pill("rgba(13,110,253,0.35)");
+  };
+
+    const paidPill = (paidStatus) => {
+    const s = String(paidStatus || "").toLowerCase();
+    if (s.includes("paid")) return pill("rgba(25,135,84,0.35)");
+    if (s.includes("unpaid")) return pill("rgba(220,53,69,0.35)");
+    return pill("rgba(255,255,255,0.12)");
+  };
+
+  const formatDuration = (minutes) => {
+    if (!minutes || Number.isNaN(Number(minutes))) return "—";
+    return `${minutes} min`;
   };
 
   if (!isMobile) {
@@ -236,8 +249,25 @@ export default function TrainerBooking() {
         <div style={cardStyle}>No bookings found.</div>
       ) : (
         <div className="d-flex flex-column gap-2">
-          {filtered.map((b, i) => (
-            <div key={b.id ?? i} style={cardStyle}>
+          {filtered.map((b, i) => {
+            const bookingId = b?.id ?? i;
+            return (
+            <div
+              key={bookingId}
+              style={{ ...cardStyle, cursor: "pointer" }}
+              onClick={() =>
+                setSelectedId((prev) => (prev === bookingId ? null : bookingId))
+              }
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  setSelectedId((prev) =>
+                    prev === bookingId ? null : bookingId
+                  );
+                }
+              }}
+            >
               <div className="d-flex justify-content-between">
                 <div style={{ fontWeight: 900 }}>{getMemberName(b)}</div>
                 <span style={statusPill(b.status)}>
@@ -247,20 +277,73 @@ export default function TrainerBooking() {
 
               <div className="mt-2 d-flex gap-2 flex-wrap">
                 <span style={pill("rgba(255,255,255,0.12)")}>
-                  <FaCalendar/> {getDate(b) || "—"}
+                    <FaCalendar /> {getDate(b) || "—"}
                 </span>
                 <span style={pill("rgba(255,255,255,0.12)")}>
-                  <FaClock/> {getTime(b)}
+                  <FaClock /> {getTime(b)}
                 </span>
               </div>
 
-              {b.note && (
-                <div className="small mt-2" style={{ opacity: 0.9 }}>
-                  {b.note}
+                            {selectedId === bookingId && (
+                <div
+                  className="mt-3"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    borderRadius: 12,
+                    padding: 12,
+                    border: "1px solid rgba(255,255,255,0.1)",
+                  }}
+                >
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div className="d-flex align-items-center gap-2">
+                      <FaUser />
+                      <span style={{ fontWeight: 700 }}>
+                        {getMemberName(b)}
+                      </span>
+                    </div>
+                    <span style={paidPill(b.paid_status)}>
+                      {String(b.paid_status || "—").toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 d-flex flex-column gap-2">
+                    <div className="d-flex justify-content-between">
+                      <span style={{ opacity: 0.8 }}>Phone</span>
+                      <span className="d-flex align-items-center gap-2">
+                        <FaPhoneAlt />
+                        {b?.member?.phone || "—"}
+                      </span>
+                    </div>
+                    <div className="d-flex justify-content-between">
+                      <span style={{ opacity: 0.8 }}>Session time</span>
+                      <span>
+                        {getDate(b) || "—"} {getTime(b)}
+                      </span>
+                    </div>
+                    <div className="d-flex justify-content-between">
+                      <span style={{ opacity: 0.8 }}>Sessions</span>
+                      <span>{b?.sessions_count ?? "—"}</span>
+                    </div>
+                    <div className="d-flex justify-content-between">
+                      <span style={{ opacity: 0.8 }}>Duration</span>
+                      <span>{formatDuration(b?.duration_minutes)}</span>
+                    </div>
+                    <div className="d-flex justify-content-between">
+                      <span style={{ opacity: 0.8 }}>Status</span>
+                      <span>{String(b?.status || "—")}</span>
+                    </div>
+                  </div>
+
+                  {b?.notes && (
+                    <div className="small mt-2" style={{ opacity: 0.9 }}>
+                      {b.notes}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>
