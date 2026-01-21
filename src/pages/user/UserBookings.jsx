@@ -58,12 +58,6 @@ function fmtDateTime(v) {
   });
 }
 
-function fmtDate(v) {
-  if (!v) return "—";
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return toText(v);
-  return d.toLocaleDateString();
-}
 
 function titleize(s) {
   return String(s || "")
@@ -100,6 +94,7 @@ export default function UserBookings() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
 
   // Optional filter like TrainerBookings
   const [filter, setFilter] = useState("all");
@@ -193,24 +188,30 @@ export default function UserBookings() {
             pick(b?.trainer_detail, ["name"]) ||
             "—";
 
+            const trainerPhone =
+            pick(b, ["trainer_phone"]) ||
+            (typeof trainerObj === "object" ? trainerObj?.phone : null) ||
+            pick(b?.trainer_detail, ["phone"]) ||
+            "—";
+
           const service =
             pick(b, ["service", "service_name", "type", "category", "package_name"]) ||
             pick(b?.service, ["name", "title"]) ||
             pick(b?.package, ["name", "title"]) ||
             "—";
 
-          const bookingDate = pick(b, ["booking_date", "date"]);
-          const start = pick(b, ["start_time", "starts_at", "from", "start"]);
-          const end = pick(b, ["end_time", "ends_at", "to", "end"]);
-
-          const location =
-            pick(b, ["location", "branch", "gym", "address"]) ||
-            pick(b?.branch, ["name"]);
+          const sessionDateTime =
+            pick(b, [
+              "session_datetime",
+              "session_time",
+              "datetime",
+              "date_time",
+              "start_time",
+              "starts_at",
+            ]) || pick(b, ["booking_date", "date"]);
+          const sessionsCount = pick(b, ["sessions_count", "session_count", "sessions"]);
 
           const note = pick(b, ["note", "remark", "message", "description"]);
-          const createdAt = pick(b, ["created_at"]);
-          const price = pick(b, ["price", "amount", "fee", "total"]);
-          const paymentStatus = pick(b, ["payment_status", "paid_status"]);
 
           return (
             <div
@@ -220,6 +221,15 @@ export default function UserBookings() {
                 borderRadius: 14,
                 background: "rgba(255,255,255,0.06)",
                 padding: 14,
+                 cursor: "pointer",
+              }}
+              onClick={() => setSelectedId((prev) => (prev === id ? null : id))}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  setSelectedId((prev) => (prev === id ? null : id));
+                }
               }}
             >
               <div className="d-flex justify-content-between align-items-start" style={{ gap: 10 }}>
@@ -235,70 +245,59 @@ export default function UserBookings() {
                 <StatusBadge status={toText(status)} />
               </div>
 
-              <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-                <div className="d-flex justify-content-between" style={{ gap: 12 }}>
-                  <span style={{ opacity: 0.8 }}>Trainer</span>
-                  <b style={{ textAlign: "right" }}>{toText(trainerName)}</b>
-                </div>
-
-                {bookingDate ? (
+                            {selectedId === id && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    display: "grid",
+                    gap: 8,
+                    background: "rgba(255,255,255,0.04)",
+                    borderRadius: 12,
+                    padding: 12,
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
                   <div className="d-flex justify-content-between" style={{ gap: 12 }}>
-                    <span style={{ opacity: 0.8 }}>Date</span>
-                    <b style={{ textAlign: "right" }}>{fmtDate(bookingDate)}</b>
+                    <span style={{ opacity: 0.8 }}>Trainer</span>
+                    <b style={{ textAlign: "right" }}>{toText(trainerName)}</b>
                   </div>
-                ) : null}
-
-                {start ? (
+               
                   <div className="d-flex justify-content-between" style={{ gap: 12 }}>
-                    <span style={{ opacity: 0.8 }}>Start</span>
-                    <b style={{ textAlign: "right" }}>{fmtDateTime(start)}</b>
+                     <span style={{ opacity: 0.8 }}>Phone</span>
+                    <b style={{ textAlign: "right" }}>{toText(trainerPhone)}</b>
                   </div>
-                ) : null}
 
-                {end ? (
                   <div className="d-flex justify-content-between" style={{ gap: 12 }}>
-                    <span style={{ opacity: 0.8 }}>End</span>
-                    <b style={{ textAlign: "right" }}>{fmtDateTime(end)}</b>
+                     <span style={{ opacity: 0.8 }}>Session time</span>
+                    <b style={{ textAlign: "right" }}>
+                      {sessionDateTime ? fmtDateTime(sessionDateTime) : "—"}
+                    </b>
                   </div>
-                ) : null}
 
-                {location ? (
+                
                   <div className="d-flex justify-content-between" style={{ gap: 12 }}>
-                    <span style={{ opacity: 0.8 }}>Location</span>
-                    <b style={{ textAlign: "right" }}>{toText(location)}</b>
+                     <span style={{ opacity: 0.8 }}>Sessions</span>
+                    <b style={{ textAlign: "right" }}>{toText(sessionsCount)}</b>
                   </div>
-                ) : null}
+           
 
-                {price !== null && price !== undefined ? (
+              
                   <div className="d-flex justify-content-between" style={{ gap: 12 }}>
-                    <span style={{ opacity: 0.8 }}>Price</span>
-                    <b style={{ textAlign: "right" }}>{toText(price)}</b>
+                     <span style={{ opacity: 0.8 }}>Status</span>
+                    <b style={{ textAlign: "right" }}>{toText(status)}</b>
                   </div>
-                ) : null}
-
-                {paymentStatus ? (
-                  <div className="d-flex justify-content-between" style={{ gap: 12 }}>
-                    <span style={{ opacity: 0.8 }}>Payment</span>
-                    <b style={{ textAlign: "right" }}>{titleize(toText(paymentStatus))}</b>
-                  </div>
-                ) : null}
-
-                {createdAt ? (
-                  <div className="d-flex justify-content-between" style={{ gap: 12 }}>
-                    <span style={{ opacity: 0.8 }}>Created</span>
-                    <b style={{ textAlign: "right" }}>{fmtDateTime(createdAt)}</b>
-                  </div>
-                ) : null}
+             
 
                 {note ? (
-                  <div style={{ marginTop: 6, opacity: 0.92, lineHeight: 1.6 }}>
-                    <div style={{ opacity: 0.75, fontSize: 12, marginBottom: 4 }}>
-                      Note
+                    <div style={{ marginTop: 6, opacity: 0.92, lineHeight: 1.6 }}>
+                      <div style={{ opacity: 0.75, fontSize: 12, marginBottom: 4 }}>
+                        Note
+                      </div>
+                      <div>{toText(note)}</div>
                     </div>
-                    <div>{toText(note)}</div>
-                  </div>
-                ) : null}
-              </div>
+                  ) : null}
+                </div>
+              )}
             </div>
           );
         })}
