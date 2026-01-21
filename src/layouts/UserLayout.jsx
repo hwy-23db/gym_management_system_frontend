@@ -2,9 +2,10 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
   FiHome,
-  FiLogIn,
-  FiMessageCircle,
+  FiCheckSquare,
+  FiRepeat,
   FiCalendar,
+  FiMessageCircle,
   FiSettings,
 } from "react-icons/fi";
 import "./UserLayout.css";
@@ -19,13 +20,13 @@ export default function UserLayout() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // ✅ mobile-only user view
+  // Mobile only (same as Trainer)
   if (!isMobile) {
     return (
       <div className="user-shell">
         <main className="user-content">
           <div>
-            <h2>Mobile Only</h2>
+            <h2>User View</h2>
             <p>Please open User View on a mobile device.</p>
             <p style={{ opacity: 0.8, marginTop: 8 }}>(Max width: 767px)</p>
 
@@ -66,11 +67,11 @@ export default function UserLayout() {
         </NavLink>
 
         <NavLink
-          to="/user/check-in"
+          to="/user/attendance"
           className={({ isActive }) => "user-nav-item" + (isActive ? " active" : "")}
         >
-          <FiLogIn className="user-nav-icon" />
-          <span className="user-nav-label">Check-in</span>
+          <FiCheckSquare className="user-nav-icon" />
+          <span className="user-nav-label">Attendance</span>
         </NavLink>
 
         <NavLink
@@ -78,7 +79,7 @@ export default function UserLayout() {
           className={({ isActive }) => "user-nav-item" + (isActive ? " active" : "")}
         >
           <FiRepeat className="user-nav-icon" />
-          <span className="user-nav-label">Subscription</span>
+          <span className="user-nav-label">Subs</span>
         </NavLink>
 
         <NavLink
@@ -94,7 +95,7 @@ export default function UserLayout() {
           className={({ isActive }) => "user-nav-item" + (isActive ? " active" : "")}
         >
           <FiMessageCircle className="user-nav-icon" />
-          <span className="user-nav-label">Message</span>
+          <span className="user-nav-label">Messages</span>
         </NavLink>
 
         <NavLink

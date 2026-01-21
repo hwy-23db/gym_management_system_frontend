@@ -1,13 +1,78 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getBlogs } from "../../api/userApi";
+import axiosClient from "../../api/axiosClient";
 
-function normalizeList(payload) {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.blogs)) return payload.blogs;
-  if (Array.isArray(payload?.data?.data)) return payload.data.data;
-  return [];
+/* ---------- helpers ---------- */
+
+function looksLikeBlogItem(x) {
+  if (!x || typeof x !== "object") return false;
+  // Common blog fields
+  return (
+    typeof x.title === "string" ||
+    typeof x.name === "string" ||
+    typeof x.summary === "string" ||
+    typeof x.content === "string" ||
+    typeof x.body === "string"
+  );
+}
+
+function findBlogArrayDeep(payload) {
+  // 1) direct common keys
+  const candidates = [
+    payload?.blogs,
+    payload?.latest_blogs,
+    payload?.latestBlogs,
+    payload?.posts,
+    payload?.articles,
+    payload?.data,
+    payload?.data?.blogs,
+    payload?.data?.latest_blogs,
+    payload?.data?.posts,
+    payload?.data?.data,
+    payload?.data?.data?.blogs,
+    payload?.data?.data?.latest_blogs,
+    payload?.home,
+    payload?.home?.blogs,
+    payload?.home?.latest_blogs,
+  ];
+
+  for (const c of candidates) {
+    if (Array.isArray(c) && c.some(looksLikeBlogItem)) return c;
+  }
+
+  // 2) if payload itself is array
+  if (Array.isArray(payload) && payload.some(looksLikeBlogItem)) return payload;
+
+  // 3) deep search (walk objects/arrays and return first blog-like array)
+  const seen = new Set();
+
+  const walk = (node) => {
+    if (!node || typeof node !== "object") return null;
+    if (seen.has(node)) return null;
+    seen.add(node);
+
+    if (Array.isArray(node)) {
+      if (node.some(looksLikeBlogItem)) return node;
+      for (const item of node) {
+        const found = walk(item);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    // object
+    for (const k of Object.keys(node)) {
+      const v = node[k];
+      if (Array.isArray(v) && v.some(looksLikeBlogItem)) return v;
+    }
+    for (const k of Object.keys(node)) {
+      const found = walk(node[k]);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  return walk(payload) || [];
 }
 
 function getServerOrigin() {
@@ -16,47 +81,29 @@ function getServerOrigin() {
   return apiBase.replace(/\/api\/?$/, "");
 }
 
-/**
- * ✅ Works with your JSON:
- *  cover_image_url: "https://api.unityfitnessmyanmar.online/storage/blogs/..jpg"
- *
- * ✅ Also works with DB field screenshot:
- *  cover_image_path: "blogs/xxx.png"  ->  <origin>/storage/blogs/xxx.png
- *
- * Also supports common variants just in case.
- */
 function isPlaceholderImage(value) {
   if (!value) return true;
-  const text = String(value).trim().toLowerCase();
+  const t = String(value).trim().toLowerCase();
   return (
-    text === "attach photo" ||
-    text === "attach image" ||
-    text === "no image" ||
-    text === "null"
+    t === "attach photo" ||
+    t === "attach image" ||
+    t === "no image" ||
+    t === "null"
   );
 }
 
 function buildImageUrl(value) {
   if (!value || isPlaceholderImage(value)) return null;
+
   const raw = String(value).trim();
-  if (raw.startsWith("http://") || raw.startsWith("https://")) {
-    return raw;
-  }
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
 
   const origin = getServerOrigin();
   const cleaned = raw.replace(/^\/+/, "");
 
-  if (cleaned.startsWith("storage/")) {
-    return `${origin}/${cleaned}`;
-  }
-
- if (cleaned.startsWith("blogs/")) {
-    return `${origin}/storage/${cleaned}`;
-  }
-
-    if (raw.startsWith("/storage/")) {
-    return `${origin}${raw}`;
-  }
+  if (cleaned.startsWith("storage/")) return `${origin}/${cleaned}`;
+  if (cleaned.startsWith("blogs/")) return `${origin}/storage/${cleaned}`;
+  if (raw.startsWith("/storage/")) return `${origin}${raw}`;
 
   return `${origin}/storage/${cleaned}`;
 }
@@ -65,59 +112,45 @@ function resolveBlogImage(blog) {
   return (
     buildImageUrl(
       blog?.cover_image_url ||
-        blog?.coverImageUrl ||
         blog?.image_url ||
-        blog?.imageUrl
+        blog?.cover_image ||
+        blog?.image ||
+        blog?.thumbnail ||
+        blog?.photo
     ) ||
     buildImageUrl(
-      blog?.cover_image_path ||
-        blog?.coverImagePath ||
-        blog?.cover_image ||
-        blog?.coverImage ||
-        blog?.image ||
-        blog?.image_path
+      blog?.cover_image_path || blog?.image_path || blog?.thumbnail_path
     )
   );
 }
 
-function BlogCardImage({ src, alt }) {
-  const [failed, setFailed] = useState(false);
-
-  return (
-    <div
-      style={{
-        width: "100%",
-        height: 160,
-        overflow: "hidden",
-        background: "rgba(255,255,255,0.04)",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      {src && !failed ? (
-        <img
-          src={src}
-          alt={alt}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          loading="lazy"
-          onError={() => setFailed(true)}
-        />
-      ) : (
-        <span style={{ fontSize: 13, opacity: 0.75 }}>
-          {src ? "Image failed to load" : "No image"}
-        </span>
-      )}
-    </div>
-  );
+function getBlogId(blog, idx) {
+  return blog?.id ?? blog?.blog_id ?? blog?.post_id ?? idx;
 }
+
+function getBlogTitle(blog) {
+  return blog?.title || blog?.name || "Untitled";
+}
+
+function getBlogSummary(blog) {
+  return blog?.summary || blog?.excerpt || "";
+}
+
+function getBlogDate(blog) {
+  return blog?.published_at || blog?.publish_date || blog?.created_at || blog?.updated_at || "";
+}
+
+/* ---------- component ---------- */
 
 export default function UserHome() {
   const navigate = useNavigate();
+
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [error, setError] = useState("");
+
+  // for debugging only (shows keys so you can confirm response)
+  const [debugKeys, setDebugKeys] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -125,25 +158,38 @@ export default function UserHome() {
     (async () => {
       try {
         setLoading(true);
-        setErr("");
+        setError("");
 
-        const res = await getBlogs();
-        const list = normalizeList(res.data);
+        const res = await axiosClient.get("/user/home");
 
-        // ✅ debug: check what fields the API list actually returns
-        if (import.meta.env.DEV && list?.[0]) {
-          console.log("BLOG[0] from GET /blogs:", list[0]);
-        }
+        // ✅ Debug: see real API response structure in console
+        console.log("GET /user/home RESPONSE:", res?.data);
+
+        const keys = res?.data && typeof res.data === "object"
+          ? Object.keys(res.data).join(", ")
+          : typeof res?.data;
+
+        if (alive) setDebugKeys(String(keys || ""));
+
+        const list = findBlogArrayDeep(res.data);
 
         const sorted = [...list].sort((a, b) => {
-          const da = new Date(a?.published_at || a?.publish_date || a?.updated_at || 0).getTime();
-          const db = new Date(b?.published_at || b?.publish_date || b?.updated_at || 0).getTime();
+          const da = new Date(getBlogDate(a) || 0).getTime();
+          const db = new Date(getBlogDate(b) || 0).getTime();
           return db - da;
         });
 
         if (alive) setBlogs(sorted);
       } catch (e) {
-        if (alive) setErr(e?.response?.data?.message || "Failed to load blogs.");
+        console.log("GET /user/home ERROR:", e?.response?.data || e);
+        if (alive) {
+          const status = e?.response?.status;
+          if (status === 401) {
+            setError("Unauthorized. Please login again.");
+          } else {
+            setError(e?.response?.data?.message || "Failed to load blogs.");
+          }
+        }
       } finally {
         if (alive) setLoading(false);
       }
@@ -154,40 +200,79 @@ export default function UserHome() {
     };
   }, []);
 
+  const emptyText = useMemo(() => {
+    if (loading) return "";
+    if (error) return "";
+    return "No blogs available.";
+  }, [loading, error]);
+
   return (
     <div>
-      <h2 style={{ marginBottom: 12 }}>User Dashboard</h2>
+      <h2 style={{ marginBottom: 12 }}>User Home</h2>
 
       <h3 style={{ marginBottom: 10, fontSize: 16 }}>Blogs</h3>
 
       {loading && <p>Loading blogs...</p>}
-      {!loading && err && <p style={{ color: "#ffb4b4" }}>{err}</p>}
-      {!loading && !err && blogs.length === 0 && <p>No blogs available.</p>}
+
+      {!loading && error && (
+        <div className="alert alert-danger" style={{ fontWeight: 600 }}>
+          {error}
+        </div>
+      )}
+
+      {/* Optional: remove this later (helps you confirm backend response keys) */}
+      {!loading && !error && (
+        <div style={{ fontSize: 12, opacity: 0.65, marginBottom: 10 }}>
+          Debug keys from /user/home: {debugKeys || "—"}
+        </div>
+      )}
+
+      {!loading && !error && blogs.length === 0 && <p>{emptyText}</p>}
 
       <div style={{ display: "grid", gap: 12 }}>
-        {blogs.map((b) => {
-          const id = b?.id;
-          const title = b?.title || "Untitled";
-          const summary = b?.summary || "";
-          const img = resolveBlogImage(b);
-          const date = b?.published_at || b?.publish_date || b?.updated_at || "";
+        {blogs.map((blog, idx) => {
+          const id = getBlogId(blog, idx);
+          const title = getBlogTitle(blog);
+          const summary = getBlogSummary(blog);
+          const image = resolveBlogImage(blog);
+          const date = getBlogDate(blog);
 
           return (
             <div
-              key={id || title}
+              key={id}
               style={{
                 border: "1px solid rgba(255,255,255,0.12)",
                 borderRadius: 14,
                 overflow: "hidden",
                 background: "rgba(255,255,255,0.06)",
-                backdropFilter: "blur(10px)",
               }}
             >
-              {/* ✅ always render image area, show placeholder if missing/failed */}
-              <BlogCardImage src={img} alt={title} />
+              <div
+                style={{
+                  height: 160,
+                  background: "rgba(255,255,255,0.04)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {image ? (
+                  <img
+                    src={image}
+                    alt={title}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <span style={{ fontSize: 13, opacity: 0.75 }}>No image</span>
+                )}
+              </div>
 
               <div style={{ padding: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                <div className="d-flex justify-content-between" style={{ gap: 10 }}>
                   <h4 style={{ margin: 0, fontSize: 16 }}>{title}</h4>
                   {date ? (
                     <span style={{ fontSize: 12, opacity: 0.75, whiteSpace: "nowrap" }}>
@@ -196,22 +281,18 @@ export default function UserHome() {
                   ) : null}
                 </div>
 
-                <p style={{ marginTop: 8, marginBottom: 12, opacity: 0.85 }}>
+                <p style={{ marginTop: 8, opacity: 0.85 }}>
                   {summary
                     ? summary.length > 120
                       ? summary.slice(0, 120) + "..."
                       : summary
-                    : "Tap read more to view details."}
+                    : "Tap read more to see details."}
                 </p>
 
-                {/* OPTIONAL debug: uncomment to see computed url in UI */}
-                {/* <p style={{ fontSize: 11, opacity: 0.6, wordBreak: "break-all" }}>{img || "no image url"}</p> */}
-
                 <button
-                  onClick={() => {
-                    if (!id) return;
-                    navigate(`/user/blogs/${id}`, { state: { blog: b } });
-                  }}
+                  onClick={() =>
+                    navigate(`/user/blogs/${id}`, { state: { blog } })
+                  }
                   style={{
                     width: "100%",
                     padding: "10px 12px",
@@ -219,7 +300,6 @@ export default function UserHome() {
                     border: "1px solid rgba(255,255,255,0.18)",
                     background: "rgba(255,255,255,0.10)",
                     color: "#fff",
-                    cursor: "pointer",
                     fontWeight: 600,
                   }}
                 >

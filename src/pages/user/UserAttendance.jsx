@@ -10,7 +10,7 @@ function formatTime(iso) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export default function TrainerScan() {
+export default function UserAttendance() {
   const isMobile = useMemo(() => window.innerWidth < 768, []);
   const busyRef = useRef(false);
 
@@ -26,27 +26,37 @@ export default function TrainerScan() {
     return "check_in";
   }, [latest]);
 
+  // Load initial status
   useEffect(() => {
+    let alive = true;
+
     (async () => {
       try {
-        const res = await axiosClient.get("/trainer/check-in");
-        // adjust if your API keys differ
-        const l = res?.data?.latest_scan || null;
-        setLatest(l);
+        const res = await axiosClient.get("/user/check-in");
 
-        // If your backend already returns these, use them:
-        setCheckInTime(res?.data?.last_check_in || null);
-        setCheckOutTime(res?.data?.last_check_out || null);
+        // ✅ different backends use different keys, so we handle common ones
+        const latestScan = res?.data?.latest_scan || res?.data?.latest || null;
+        const lastIn = res?.data?.last_check_in || res?.data?.check_in_time || null;
+        const lastOut =
+          res?.data?.last_check_out || res?.data?.check_out_time || null;
 
-        // If latest is check_in and there's no checkout yet, keep scanning
-        // If latest is check_out, still allow scanning (you can decide)
+        if (!alive) return;
+
+        setLatest(latestScan);
+        setCheckInTime(lastIn);
+        setCheckOutTime(lastOut);
       } catch (e) {
+        if (!alive) return;
         setStatusMsg({
           type: "warning",
-          text: e?.response?.data?.message || "Unable to load trainer scan status.",
+          text: e?.response?.data?.message || "Unable to load attendance status.",
         });
       }
     })();
+
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const handleScan = async (decodedText) => {
@@ -66,7 +76,7 @@ export default function TrainerScan() {
       // Pause scanning while calling API (prevents double submission)
       setScannerActive(false);
 
-      const res = await axiosClient.post("/trainer/check-in/scan", {
+      const res = await axiosClient.post("/user/check-in/scan", {
         token: parsed.token,
       });
 
@@ -93,7 +103,7 @@ export default function TrainerScan() {
           text: res?.data?.message || "Check-out recorded.",
         });
 
-        // ✅ STOP scanning after check-out (as you requested)
+        // ✅ stop scanner after check-out (same behavior we used before)
         setScannerActive(false);
       } else {
         setStatusMsg({
@@ -107,7 +117,6 @@ export default function TrainerScan() {
         type: "danger",
         text: e?.response?.data?.message || "Scan failed.",
       });
-      // If API fails, allow scanning again
       setScannerActive(true);
     } finally {
       setTimeout(() => {
@@ -119,9 +128,9 @@ export default function TrainerScan() {
   if (!isMobile) {
     return (
       <div className="container py-3" style={{ maxWidth: 520 }}>
-        <h4 className="mb-2">Trainer Attendance</h4>
+        <h4 className="mb-2">User Attendance</h4>
         <div className="alert alert-warning mb-0">
-          Trainer scan works on mobile view only.
+          Attendance scanning works on mobile view only.
         </div>
       </div>
     );
@@ -129,6 +138,7 @@ export default function TrainerScan() {
 
   return (
     <div className="container py-3" style={{ maxWidth: 520 }}>
+      {/* Header card */}
       <div
         style={{
           background: "rgba(255,255,255,0.06)",
@@ -141,7 +151,7 @@ export default function TrainerScan() {
       >
         <div className="d-flex align-items-start justify-content-between">
           <div>
-            <div style={{ fontWeight: 800, fontSize: 18 }}>Trainer Attendance</div>
+            <div style={{ fontWeight: 800, fontSize: 18 }}>User Attendance</div>
             <div style={{ opacity: 0.85, fontSize: 13, marginTop: 4 }}>
               Scan once to <b>Check-in</b>, scan again to <b>Check-out</b>.
             </div>
@@ -185,9 +195,10 @@ export default function TrainerScan() {
         </div>
       )}
 
-      {/* ✅ Scanner is always mounted; controlled by active flag */}
+      {/* ✅ scanner (always mounted; controlled by active) */}
       <QrScanner onDecode={handleScan} active={scannerActive} cooldownMs={1500} />
 
+      {/* Result card */}
       <div
         className="mt-3"
         style={{

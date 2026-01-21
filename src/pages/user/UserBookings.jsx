@@ -1,268 +1,308 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axiosClient from "../../api/axiosClient";
-import { FaCalendar, FaClock } from "react-icons/fa";
 
-/**
- * Endpoint:
- *   GET /api/user/bookings
- *
- * Response:
- * {
- *   "bookings": [
- *      {
- *        id,
- *        member_name | member:{name},
- *        date | start_date,
- *        time | start_time,
- *        session_datetime (common: "YYYY-MM-DD HH:mm:ss"),
- *        status,
- *        note
- *      }
- *   ]
- * }
- */
+/* ------------ helpers ------------ */
 
-function getMemberName(b) {
-  return b?.member_name || b?.member?.name || b?.user?.name || "—";
+function normalizeBookings(payload) {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.bookings)) return payload.bookings;
+  if (Array.isArray(payload.data)) return payload.data;
+  if (Array.isArray(payload.data?.data)) return payload.data.data;
+  if (Array.isArray(payload.data?.bookings)) return payload.data.bookings;
+  if (Array.isArray(payload.bookings?.data)) return payload.bookings.data;
+  return [];
 }
 
-/** ✅ NEW: parse backend datetime safely (supports "YYYY-MM-DD HH:mm:ss" and ISO) */
-function parseBackendDateTime(value) {
-  if (!value) return null;
-  const str = String(value);
-  const normalized = str.includes("T") ? str : str.replace(" ", "T");
-  const d = new Date(normalized);
-  if (Number.isNaN(d.getTime())) return null;
-  return d;
-}
-
-function pad2(n) {
-  return String(n).padStart(2, "0");
-}
-
-function formatISODate(d) {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
-
-/** ✅ UPDATED: supports session_datetime + more fallbacks */
-function getDate(b) {
-  const dtRaw =
-    b?.session_datetime ||
-    b?.session_time ||
-    b?.datetime ||
-    b?.date_time ||
-    b?.starts_at ||
-    b?.start_time;
-
-  const d = parseBackendDateTime(dtRaw);
-  if (d) return formatISODate(d);
-
-  // fallback if backend provides a pure date field
-  if (b?.date) return b.date;
-  if (b?.start_date) return b.start_date;
-
-  // fallback if string contains date at beginning
-  if (typeof dtRaw === "string" && dtRaw.length >= 10) return dtRaw.slice(0, 10);
-
-  return "";
-}
-
-/** ✅ UPDATED: supports session_datetime + more fallbacks */
-function getTime(b) {
-  const dtRaw =
-    b?.session_datetime ||
-    b?.session_time ||
-    b?.datetime ||
-    b?.date_time ||
-    b?.starts_at ||
-    b?.start_time;
-
-  const d = parseBackendDateTime(dtRaw);
-  if (d) {
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function pick(obj, keys) {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (v !== undefined && v !== null && String(v).trim() !== "") return v;
   }
-
-  // fallback if backend provides a pure time field
-  if (b?.time) return b.time;
-
-  // fallback if string looks like time or includes time part
-  if (typeof dtRaw === "string") {
-    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(dtRaw)) return dtRaw; // "10:30" or "10:30:00"
-    const maybe = dtRaw.split(" ")[1] || dtRaw.split("T")[1]; // "YYYY-MM-DD HH:mm:ss" or ISO
-    if (maybe) return maybe;
-  }
-
-  return "—";
+  return null;
 }
 
-export default function UserBooking() {
-  const isMobile = useMemo(() => window.innerWidth < 768, []);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+function toText(v) {
+  // ✅ Convert objects safely to readable text (prevents React crash)
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean")
+    return String(v);
 
-  const [bookings, setBookings] = useState([]);
+  // If API returns object like {id, name, phone, email}
+  if (typeof v === "object") {
+    const name =
+      v?.name || v?.full_name || v?.title || v?.email || v?.phone || null;
+    if (name) return String(name);
 
-  // filters
-  const [search, setSearch] = useState("");
-  const [date, setDate] = useState("");
-
-  const fetchBookings = async () => {
-    setLoading(true);
-    setError(null);
-
+    // fallback: try to stringify without crashing
     try {
-      // ✅ UPDATED ENDPOINT
-      const res = await axiosClient.get("/user/bookings");
-      setBookings(Array.isArray(res?.data?.bookings) ? res.data.bookings : []);
-    } catch (e) {
-      setError(e?.response?.data?.message || "Failed to load bookings.");
-    } finally {
-      setLoading(false);
+      return JSON.stringify(v);
+    } catch {
+      return "[object]";
     }
-  };
+  }
+
+  return String(v);
+}
+
+function fmtDateTime(v) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return toText(v);
+  return d.toLocaleString([], {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function fmtDate(v) {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return toText(v);
+  return d.toLocaleDateString();
+}
+
+function titleize(s) {
+  return String(s || "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+
+function StatusBadge({ status }) {
+  const s = String(status || "").toLowerCase();
+
+  const cls =
+    s === "approved" || s === "confirmed"
+      ? "bg-success"
+      : s === "pending"
+      ? "bg-warning text-dark"
+      : s === "rejected"
+      ? "bg-danger"
+      : s === "cancelled" || s === "canceled"
+      ? "bg-secondary"
+      : s === "completed" || s === "done"
+      ? "bg-info"
+      : "bg-secondary";
+
+  return (
+    <span className={`badge ${cls}`} style={{ textTransform: "capitalize" }}>
+      {status || "—"}
+    </span>
+  );
+}
+
+/* ------------ page ------------ */
+
+export default function UserBookings() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Optional filter like TrainerBookings
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
-    fetchBookings();
+    let alive = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const res = await axiosClient.get("/user/bookings");
+        console.log("GET /user/bookings RESPONSE:", res?.data);
+
+        const list = normalizeBookings(res?.data);
+
+        const sorted = [...list].sort((a, b) => {
+          const da = new Date(
+            pick(a, ["created_at", "booking_date", "date", "start_time", "starts_at"]) || 0
+          ).getTime();
+          const db = new Date(
+            pick(b, ["created_at", "booking_date", "date", "start_time", "starts_at"]) || 0
+          ).getTime();
+          return db - da;
+        });
+
+        if (alive) setItems(sorted);
+      } catch (e) {
+        console.log("GET /user/bookings ERROR:", e?.response?.data || e);
+        if (alive) setError(e?.response?.data?.message || "Failed to load bookings.");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const filtered = useMemo(() => {
-    return bookings.filter((b) => {
-      const nameMatch =
-        !search || getMemberName(b).toLowerCase().includes(search.toLowerCase());
-
-      const dateMatch = !date || getDate(b) === date;
-
-      return nameMatch && dateMatch;
+    if (filter === "all") return items;
+    return items.filter((b) => {
+      const s = String(pick(b, ["status", "state"]) || "").toLowerCase();
+      return s === filter;
     });
-  }, [bookings, search, date]);
-
-  const cardStyle = {
-    borderRadius: 14,
-    background: "rgba(0,0,0,0.35)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    padding: 14,
-    color: "#fff",
-    backdropFilter: "blur(6px)",
-  };
-
-  const pill = (bg) => ({
-    padding: "4px 10px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 800,
-    background: bg,
-    border: "1px solid rgba(255,255,255,0.15)",
-  });
-
-  const statusPill = (status) => {
-    const s = String(status || "").toLowerCase();
-    if (s.includes("cancel")) return pill("rgba(220,53,69,0.35)");
-    if (s.includes("complete")) return pill("rgba(25,135,84,0.35)");
-    if (s.includes("pending")) return pill("rgba(255,193,7,0.35)");
-    return pill("rgba(13,110,253,0.35)");
-  };
-
-  if (!isMobile) {
-    return (
-      <div className="container py-3" style={{ maxWidth: 720 }}>
-        <div className="alert alert-warning">
-          User booking view is optimized for mobile.
-        </div>
-      </div>
-    );
-  }
+  }, [items, filter]);
 
   return (
-    <div className="container py-3" style={{ maxWidth: 720 }}>
-      {/* Header */}
-      <div style={cardStyle} className="mb-3">
-        <div className="d-flex justify-content-between align-items-start">
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 900 }}>
-              User Bookings
-            </div>
-            <div className="small" style={{ opacity: 0.9 }}>
-              From Bookings
-            </div>
-          </div>
+    <div>
+      <div className="d-flex align-items-center justify-content-between" style={{ gap: 12 }}>
+        <h2 style={{ marginBottom: 12 }}>Bookings</h2>
 
-          <button
-            className="btn btn-sm btn-outline-light"
-            onClick={fetchBookings}
-            disabled={loading}
-            style={{ borderRadius: 10 }}
-          >
-            Refresh
-          </button>
-        </div>
-
-        {/* Filters */}
-        <div className="mt-3 d-flex gap-2">
-          <input
-            className="form-control"
-            placeholder="Search member..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              borderRadius: 12,
-              background: "rgba(0,0,0,0.45)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              color: "#fff",
-            }}
-          />
-
-          <input
-            type="date"
-            className="form-control"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            style={{
-              borderRadius: 12,
-              background: "rgba(0,0,0,0.45)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              color: "#fff",
-              width: 150,
-            }}
-          />
-        </div>
+        <select
+          className="form-select form-select-sm"
+          style={{ width: 170 }}
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        >
+          <option value="all">All</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="rejected">Rejected</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="completed">Completed</option>
+        </select>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      {loading && <p>Loading bookings...</p>}
 
-      {/* List */}
-      {loading ? (
-        <div style={cardStyle}>Loading bookings...</div>
-      ) : filtered.length === 0 ? (
-        <div style={cardStyle}>No bookings found.</div>
-      ) : (
-        <div className="d-flex flex-column gap-2">
-          {filtered.map((b, i) => (
-            <div key={b.id ?? i} style={cardStyle}>
-              <div className="d-flex justify-content-between">
-                <div style={{ fontWeight: 900 }}>{getMemberName(b)}</div>
-                <span style={statusPill(b.status)}>
-                  {String(b.status || "ACTIVE").toUpperCase()}
-                </span>
-              </div>
-
-              <div className="mt-2 d-flex gap-2 flex-wrap">
-                <span style={pill("rgba(255,255,255,0.12)")}>
-                  <FaCalendar/> {getDate(b) || "—"}
-                </span>
-                <span style={pill("rgba(255,255,255,0.12)")}>
-                  <FaClock/> {getTime(b)}
-                </span>
-              </div>
-
-              {b.note && (
-                <div className="small mt-2" style={{ opacity: 0.9 }}>
-                  {b.note}
-                </div>
-              )}
-            </div>
-          ))}
+      {!loading && error && (
+        <div className="alert alert-danger" style={{ fontWeight: 600 }}>
+          {error}
         </div>
       )}
+
+      {!loading && !error && filtered.length === 0 && <p>No bookings available.</p>}
+
+      <div style={{ display: "grid", gap: 12 }}>
+        {filtered.map((b, idx) => {
+          const id = pick(b, ["id", "booking_id", "reference_id"]) ?? idx;
+          const status = pick(b, ["status", "state"]) || "—";
+
+          // Trainer might be object: {id,name,phone,email}
+          const trainerObj = pick(b, ["trainer"]) || b?.trainer;
+          const trainerName =
+            pick(b, ["trainer_name"]) ||
+            (typeof trainerObj === "object" ? (trainerObj?.name || trainerObj?.email || trainerObj?.phone) : trainerObj) ||
+            pick(b?.trainer_detail, ["name"]) ||
+            "—";
+
+          const service =
+            pick(b, ["service", "service_name", "type", "category", "package_name"]) ||
+            pick(b?.service, ["name", "title"]) ||
+            pick(b?.package, ["name", "title"]) ||
+            "—";
+
+          const bookingDate = pick(b, ["booking_date", "date"]);
+          const start = pick(b, ["start_time", "starts_at", "from", "start"]);
+          const end = pick(b, ["end_time", "ends_at", "to", "end"]);
+
+          const location =
+            pick(b, ["location", "branch", "gym", "address"]) ||
+            pick(b?.branch, ["name"]);
+
+          const note = pick(b, ["note", "remark", "message", "description"]);
+          const createdAt = pick(b, ["created_at"]);
+          const price = pick(b, ["price", "amount", "fee", "total"]);
+          const paymentStatus = pick(b, ["payment_status", "paid_status"]);
+
+          return (
+            <div
+              key={id}
+              style={{
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 14,
+                background: "rgba(255,255,255,0.06)",
+                padding: 14,
+              }}
+            >
+              <div className="d-flex justify-content-between align-items-start" style={{ gap: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 16 }}>
+                    {titleize(toText(service))}
+                  </div>
+                  <div style={{ opacity: 0.75, fontSize: 12, marginTop: 4 }}>
+                    Booking ID: {toText(id)}
+                  </div>
+                </div>
+
+                <StatusBadge status={toText(status)} />
+              </div>
+
+              <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+                <div className="d-flex justify-content-between" style={{ gap: 12 }}>
+                  <span style={{ opacity: 0.8 }}>Trainer</span>
+                  <b style={{ textAlign: "right" }}>{toText(trainerName)}</b>
+                </div>
+
+                {bookingDate ? (
+                  <div className="d-flex justify-content-between" style={{ gap: 12 }}>
+                    <span style={{ opacity: 0.8 }}>Date</span>
+                    <b style={{ textAlign: "right" }}>{fmtDate(bookingDate)}</b>
+                  </div>
+                ) : null}
+
+                {start ? (
+                  <div className="d-flex justify-content-between" style={{ gap: 12 }}>
+                    <span style={{ opacity: 0.8 }}>Start</span>
+                    <b style={{ textAlign: "right" }}>{fmtDateTime(start)}</b>
+                  </div>
+                ) : null}
+
+                {end ? (
+                  <div className="d-flex justify-content-between" style={{ gap: 12 }}>
+                    <span style={{ opacity: 0.8 }}>End</span>
+                    <b style={{ textAlign: "right" }}>{fmtDateTime(end)}</b>
+                  </div>
+                ) : null}
+
+                {location ? (
+                  <div className="d-flex justify-content-between" style={{ gap: 12 }}>
+                    <span style={{ opacity: 0.8 }}>Location</span>
+                    <b style={{ textAlign: "right" }}>{toText(location)}</b>
+                  </div>
+                ) : null}
+
+                {price !== null && price !== undefined ? (
+                  <div className="d-flex justify-content-between" style={{ gap: 12 }}>
+                    <span style={{ opacity: 0.8 }}>Price</span>
+                    <b style={{ textAlign: "right" }}>{toText(price)}</b>
+                  </div>
+                ) : null}
+
+                {paymentStatus ? (
+                  <div className="d-flex justify-content-between" style={{ gap: 12 }}>
+                    <span style={{ opacity: 0.8 }}>Payment</span>
+                    <b style={{ textAlign: "right" }}>{titleize(toText(paymentStatus))}</b>
+                  </div>
+                ) : null}
+
+                {createdAt ? (
+                  <div className="d-flex justify-content-between" style={{ gap: 12 }}>
+                    <span style={{ opacity: 0.8 }}>Created</span>
+                    <b style={{ textAlign: "right" }}>{fmtDateTime(createdAt)}</b>
+                  </div>
+                ) : null}
+
+                {note ? (
+                  <div style={{ marginTop: 6, opacity: 0.92, lineHeight: 1.6 }}>
+                    <div style={{ opacity: 0.75, fontSize: 12, marginBottom: 4 }}>
+                      Note
+                    </div>
+                    <div>{toText(note)}</div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

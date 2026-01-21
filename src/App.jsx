@@ -1,40 +1,44 @@
 import React, { Suspense, lazy } from "react";
-
 import { Routes, Route, Navigate } from "react-router-dom";
 
 const Login = lazy(() => import("./pages/public/Login"));
 const Register = lazy(() => import("./pages/public/Register"));
 const VerifyEmail = lazy(() => import("./pages/public/VerifyEmail"));
 
+/* Admin */
 const AdminLayout = lazy(() => import("./layouts/AdminLayout"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminSubscriptions = lazy(() => import("./pages/admin/AdminSubscriptions"));
 const AdminPricing = lazy(() => import("./pages/admin/AdminPricing"));
-const AdminTrainerBookings = lazy(() => import("./pages/admin/AdminTrainerBookings"));
+const AdminTrainerBookings = lazy(() =>
+  import("./pages/admin/AdminTrainerBookings")
+);
 const AdminAttendance = lazy(() => import("./pages/admin/AdminAttendance"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const AdminBlogs = lazy(() => import("./pages/admin/AdminBlogs"));
 
-//trainer
+/* Trainer */
+const TrainerLayout = lazy(() => import("./layouts/TrainerLayout"));
+const TrainerHome = lazy(() => import("./pages/trainer/TrainerHome"));
 const TrainerScan = lazy(() => import("./pages/trainer/TrainerScan"));
-const TrainerLayout = lazy (()=>import( "./layouts/TrainerLayout"));
-const TrainerHome = lazy (() =>import ("./pages/trainer/TrainerHome"));
-const TrainerMessages = lazy (() =>import ("./pages/trainer/TrainerMessages"));
-const TrainerBookings = lazy (() =>import ("./pages/trainer/TrainerBookings"));
-const TrainerBlogDetails = lazy (() =>import ("./pages/trainer/TrainerBlogDetails"));
-const TrainerSettings = lazy(()=>import("./pages/trainer/TrainerSettings"));
+const TrainerMessages = lazy(() => import("./pages/trainer/TrainerMessages"));
+const TrainerBookings = lazy(() => import("./pages/trainer/TrainerBookings"));
+const TrainerBlogDetails = lazy(() =>
+  import("./pages/trainer/TrainerBlogDetails")
+);
+const TrainerSettings = lazy(() => import("./pages/trainer/TrainerSettings"));
 
- //user
- const UserScan = lazy(() => import("./pages/user/UserScan"));
- const UserLayout = lazy(() => import("./layouts/UserLayout"));
- const UserHome = lazy(() => import("./pages/user/UserHome"));
- const UserAttendance = lazy(() => import("./pages/user/UserBlogDetails"));
- const UserSubscriptions = lazy(() => import("./pages/user/UserSubscriptions"));
- const UserBookings = lazy(() => import("./pages/user/UserBookings"));
- const UserMessages = lazy(() => import("./pages/user/UserMessages"));
- const UserSettings = lazy(() => import("./pages/user/UserSettings"));
-
+/* User */
+const UserLayout = lazy(() => import("./layouts/UserLayout"));
+const UserHome = lazy(() => import("./pages/user/UserHome"));
+const UserScan = lazy(() => import("./pages/user/UserScan"));
+const UserBlogDetails = lazy(() => import("./pages/user/UserBlogDetails"));
+const UserAttendance = lazy(() => import("./pages/user/UserAttendance"));
+const UserSubscriptions = lazy(() => import("./pages/user/UserSubscriptions"));
+const UserBookings = lazy(() => import("./pages/user/UserBookings"));
+const UserMessages = lazy(() => import("./pages/user/UserMessages"));
+const UserSettings = lazy(() => import("./pages/user/UserSettings"));
 
 function getToken() {
   return localStorage.getItem("token") || sessionStorage.getItem("token");
@@ -42,6 +46,10 @@ function getToken() {
 function getUser() {
   const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
   return raw ? JSON.parse(raw) : null;
+}
+
+function normRole(role) {
+  return String(role || "").trim().toLowerCase();
 }
 
 function Protected({ children }) {
@@ -52,7 +60,15 @@ function Protected({ children }) {
 function RoleOnly({ role, children }) {
   const user = getUser();
   if (!user) return <Navigate to="/login" replace />;
-  return user.role === role ? children : <Navigate to="/login" replace />;
+
+  const need = normRole(role);
+  const have = normRole(user.role);
+
+  // allow "admin" alias
+  if (need === "administrator" && (have === "administrator" || have === "admin"))
+    return children;
+
+  return have === need ? children : <Navigate to="/login" replace />;
 }
 
 export default function App() {
@@ -66,6 +82,7 @@ export default function App() {
     >
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
+
         {/* Public */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -82,7 +99,7 @@ export default function App() {
             </Protected>
           }
         >
-          <Route index element={<AdminDashboard />} />
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="subscriptions" element={<AdminSubscriptions />} />
@@ -93,8 +110,7 @@ export default function App() {
           <Route path="blogs" element={<AdminBlogs />} />
         </Route>
 
-
-        {/* User (mobile page) */}
+        {/* User ✅ FIXED (nested routes correctly under /user) */}
         <Route
           path="/user"
           element={
@@ -104,19 +120,19 @@ export default function App() {
               </RoleOnly>
             </Protected>
           }
-          >
-
-          <Route index element={<UserHome />} />
+        >
+          <Route index element={<Navigate to="/user/home" replace />} />
           <Route path="home" element={<UserHome />} />
           <Route path="scan" element={<UserScan />} />
+          <Route path="blogs/:id" element={<UserBlogDetails />} />
+          <Route path="attendance" element={<UserAttendance />} />
           <Route path="subscriptions" element={<UserSubscriptions />} />
           <Route path="bookings" element={<UserBookings />} />
           <Route path="messages" element={<UserMessages />} />
           <Route path="settings" element={<UserSettings />} />
-          </Route>
+        </Route>
 
-
-        {/* Trainer (mobile page) */}
+        {/* Trainer */}
         <Route
           path="/trainer"
           element={
@@ -127,15 +143,13 @@ export default function App() {
             </Protected>
           }
         >
-
-         <Route index element={<TrainerHome />} />
+          <Route index element={<Navigate to="/trainer/home" replace />} />
           <Route path="home" element={<TrainerHome />} />
           <Route path="scan" element={<TrainerScan />} />
           <Route path="messages" element={<TrainerMessages />} />
           <Route path="bookings" element={<TrainerBookings />} />
           <Route path="blogs/:id" element={<TrainerBlogDetails />} />
           <Route path="settings" element={<TrainerSettings />} />
-
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />

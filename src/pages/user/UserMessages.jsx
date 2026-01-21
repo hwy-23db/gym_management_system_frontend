@@ -14,8 +14,19 @@ function toChatDateTime(iso) {
   return `${mm}/${dd}/${yyyy}, ${time}`;
 }
 
-export default function UserrMessages() {
+function getUserFromStorage() {
+  try {
+    const raw = localStorage.getItem("user") || sessionStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export default function UserMessages() {
   const isMobile = useMemo(() => window.innerWidth < 768, []);
+  const me = useMemo(() => getUserFromStorage(), []);
+
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
@@ -43,8 +54,16 @@ export default function UserrMessages() {
       const res = await axiosClient.get("/user/messages");
       const data = res?.data;
 
+      // Backend shown in your console: { admin: {...}, messages: [...] }
       setAdmin(data?.admin || null);
-      setMessages(Array.isArray(data?.messages) ? data.messages : []);
+
+      const list = Array.isArray(data?.messages)
+        ? data.messages
+        : Array.isArray(data?.messages?.data)
+        ? data.messages.data
+        : [];
+
+      setMessages(list);
 
       setTimeout(() => scrollToBottom(!silent), 50);
     } catch (e) {
@@ -70,12 +89,21 @@ export default function UserrMessages() {
     setError(null);
 
     try {
+      // ✅ backend requires body (you confirmed from 422 error)
       await axiosClient.post("/user/messages", { body });
+
       setText("");
+
+      // ✅ reload to show the message (POST response may not include it)
       await fetchMessages({ silent: true });
+
       scrollToBottom(true);
     } catch (e) {
-      setError(e?.response?.data?.message || "Failed to send message.");
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.errors?.body?.[0] ||
+        "Failed to send message.";
+      setError(msg);
     } finally {
       setSending(false);
     }
@@ -98,10 +126,8 @@ export default function UserrMessages() {
     );
   }
 
-  // ====== STYLE (matches screenshot) ======
-  const pageWrap = {
-    maxWidth: 720,
-  };
+  // ====== STYLE (same as TrainerMessages) ======
+  const pageWrap = { maxWidth: 720 };
 
   const chatPanel = {
     borderRadius: 14,
@@ -130,7 +156,7 @@ export default function UserrMessages() {
 
   const bubbleRight = {
     ...bubbleCommon,
-    background: "rgba(13,110,253,0.55)", // bootstrap-ish blue
+    background: "rgba(13,110,253,0.55)",
     color: "rgba(255,255,255,0.98)",
     border: "1px solid rgba(13,110,253,0.35)",
   };
@@ -169,12 +195,24 @@ export default function UserrMessages() {
     minWidth: 74,
   };
 
+  const isMine = (m) => {
+    // Prefer backend flag if exists
+    if (typeof m?.is_user === "boolean") return m.is_user;
+    if (typeof m?.is_trainer === "boolean") return m.is_trainer; // just in case
+    if (typeof m?.is_sender === "boolean") return m.is_sender;
+
+    // Fallback by user_id/sender_id
+    const senderId =
+      m?.sender_id ?? m?.from_user_id ?? m?.user_id ?? m?.sender?.id ?? null;
+    if (!me?.id || !senderId) return false;
+    return String(senderId) === String(me.id);
+  };
+
   return (
     <div className="container py-3" style={pageWrap}>
-      {/* Optional small header (can remove if you want only chat) */}
       {admin && (
         <div className="mb-2" style={{ color: "rgba(255,255,255,0.9)" }}>
-          Chat with <b>{admin.name}</b>
+          Chat with <b>{admin?.name || "Admin"}</b>
         </div>
       )}
 
@@ -196,10 +234,11 @@ export default function UserrMessages() {
           </div>
         ) : (
           messages.map((m) => {
-            const mine = !!m?.is_user;
+            const mine = isMine(m);
+            const body = m?.body ?? m?.message ?? m?.content ?? "";
             return (
               <div
-                key={m.id}
+                key={m?.id || `${m?.created_at}-${Math.random()}`}
                 style={{
                   display: "flex",
                   justifyContent: mine ? "flex-end" : "flex-start",
@@ -207,8 +246,8 @@ export default function UserrMessages() {
                 }}
               >
                 <div style={mine ? bubbleRight : bubbleLeft}>
-                  <div style={{ whiteSpace: "pre-wrap" }}>{m.body}</div>
-                  <div style={timeText}>{toChatDateTime(m.created_at)}</div>
+                  <div style={{ whiteSpace: "pre-wrap" }}>{String(body)}</div>
+                  <div style={timeText}>{toChatDateTime(m?.created_at)}</div>
                 </div>
               </div>
             );

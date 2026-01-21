@@ -22,6 +22,10 @@ export default function UserSettings() {
     color: "#fff",
     fontWeight: 900,
     fontSize: 15,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
   };
 
   const handleLogout = async () => {
@@ -52,7 +56,8 @@ export default function UserSettings() {
       {/* Logout only */}
       <div style={card}>
         <button style={logoutBtn} onClick={handleLogout}>
-          <FaLongArrowAltRight /><span>Logout</span>
+          <FaLongArrowAltRight />
+          <span>Logout</span>
         </button>
       </div>
     </div>

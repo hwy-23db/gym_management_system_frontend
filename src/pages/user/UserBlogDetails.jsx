@@ -20,27 +20,18 @@ function isPlaceholderImage(value) {
 
 function buildImageUrl(value) {
   if (!value || isPlaceholderImage(value)) return null;
+
   const raw = String(value).trim();
-  if (raw.startsWith("http://") || raw.startsWith("https://")) {
-    return raw;
-  }
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
 
   const origin = getServerOrigin();
   const cleaned = raw.replace(/^\/+/, "");
 
-  if (cleaned.startsWith("storage/")) {
-    return `${origin}/${cleaned}`;
-  }
+  if (cleaned.startsWith("storage/")) return `${origin}/${cleaned}`;
+  if (cleaned.startsWith("blogs/")) return `${origin}/storage/${cleaned}`;
+  if (raw.startsWith("/storage/")) return `${origin}${raw}`;
 
-    if (cleaned.startsWith("blogs/")) {
-    return `${origin}/storage/${cleaned}`;
-  }
-
-  if (raw.startsWith("/storage/")) {
-    return `${origin}${raw}`;
-  }
-
-    return `${origin}/storage/${cleaned}`;
+  return `${origin}/storage/${cleaned}`;
 }
 
 function resolveBlogImage(blog) {
@@ -177,9 +168,6 @@ export default function UserBlogDetails() {
         >
           {content || "No content available."}
         </div>
-
-        {/* OPTIONAL debug (uncomment): */}
-        {/* <p style={{ fontSize: 11, opacity: 0.6, wordBreak: "break-all" }}>{img || "no image url"}</p> */}
       </div>
     </div>
   );
