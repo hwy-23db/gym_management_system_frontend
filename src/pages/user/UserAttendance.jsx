@@ -25,8 +25,25 @@ function isToday(iso) {
   return isSameDay(d, new Date());
 }
 
+function getRecordAction(record) {
+  if (!record || typeof record !== "object") return null;
+  const raw = record.action ?? record.type ?? record.status ?? record.event ?? null;
+  if (!raw) return null;
+  return String(raw).toLowerCase().replace("-", "_");
+}
+
 function getRecordTimestamp(record) {
-  return record?.timestamp || record?.created_at || record?.updated_at || null;
+  if (!record || typeof record !== "object") return record ?? null;
+  return (
+    record.timestamp ||
+    record.time ||
+    record.scanned_at ||
+    record.created_at ||
+    record.updated_at ||
+    record.check_in_time ||
+    record.check_out_time ||
+    null
+  );
 }
 
 function normalizeTimestamp(value) {
@@ -49,6 +66,22 @@ function lastRecordFromList(list) {
   return filtered[filtered.length - 1];
 }
 
+function normalizeRecord(record) {
+  if (!record || typeof record !== "object") return record;
+  const action = getRecordAction(record);
+  if (!action || record.action) return record;
+  return { ...record, action };
+}
+
+function pickFirstValue(source, keys) {
+  if (!source) return null;
+  for (const key of keys) {
+    const value = source?.[key];
+    if (value) return value;
+  }
+  return null;
+}
+
 export default function UserAttendance() {
   const isMobile = useMemo(() => window.innerWidth < 768, []);
   const busyRef = useRef(false);
@@ -61,7 +94,7 @@ export default function UserAttendance() {
   const [checkOutTime, setCheckOutTime] = useState(null);
 
   const nextAction = useMemo(() => {
-    if (latest?.action === "check_in") return "check_out";
+      if (getRecordAction(latest) === "check_in") return "check_out";
     return "check_in";
   }, [latest]);
 
@@ -75,34 +108,50 @@ export default function UserAttendance() {
          const payload = res?.data || {};
 
         // ✅ different backends use different keys, so we handle common ones
-        const latestScan =
+         const latestScan = normalizeRecord(
           payload.latest_scan ||
           payload.latest ||
-          lastRecordFromList(payload.records) ||
-          lastRecordFromList(payload.history) ||
-          null;
+          payload.last_scan ||
+            lastRecordFromList(payload.records) ||
+            lastRecordFromList(payload.history) ||
+            null
+        );
         const lastIn =
-          payload.last_check_in ||
-          payload.check_in_time ||
+           pickFirstValue(payload, [
+            "last_check_in",
+            "last_checkin",
+            "lastCheckIn",
+            "check_in_time",
+            "checkin_time",
+            "checkInTime",
+            "last_check_in_time",
+          ]) ||
           lastTimestampFromList(payload.check_ins) ||
           lastTimestampFromList(payload.checkins) ||
           lastTimestampFromList(payload.records, (record) =>
-            ["check_in", "in"].includes(record?.action || record?.type)
+            ["check_in", "in"].includes(getRecordAction(record))
           ) ||
           lastTimestampFromList(payload.history, (record) =>
-            ["check_in", "in"].includes(record?.action || record?.type)
+            ["check_in", "in"].includes(getRecordAction(record))
           ) ||
           null;
         const lastOut =
-          payload.last_check_out ||
-          payload.check_out_time ||
+          pickFirstValue(payload, [
+            "last_check_out",
+            "last_checkout",
+            "lastCheckOut",
+            "check_out_time",
+            "checkout_time",
+            "checkOutTime",
+            "last_check_out_time",
+          ]) ||
           lastTimestampFromList(payload.check_outs) ||
           lastTimestampFromList(payload.checkouts) ||
           lastTimestampFromList(payload.records, (record) =>
-            ["check_out", "out"].includes(record?.action || record?.type)
+            ["check_out", "out"].includes(getRecordAction(record))
           ) ||
           lastTimestampFromList(payload.history, (record) =>
-            ["check_out", "out"].includes(record?.action || record?.type)
+            ["check_out", "out"].includes(getRecordAction(record))
           ) ||
           null;
 
@@ -149,12 +198,22 @@ export default function UserAttendance() {
         token: parsed.token,
       });
 
-      const record = res?.data?.record || null;
-      const action = record?.action;
-      const timestamp = getRecordTimestamp(record);
+      const record = normalizeRecord(res?.data?.record || null);
+      const action =
+        getRecordAction(record) ||
+        getRecordAction(res?.data) ||
+        res?.data?.action ||
+        res?.data?.type ||
+        null;
+      const timestamp =
+        getRecordTimestamp(record) ||
+        res?.data?.timestamp ||
+        res?.data?.time ||
+        res?.data?.scanned_at ||
+        null;
 
-      setLatest(isToday(timestamp) ? record : null);
-
+      const latestRecord = record || (action || timestamp ? { action, timestamp } : null);
+      setLatest(isToday(timestamp) ? latestRecord : null);
       if (action === "check_in") {
         setCheckInTime(isToday(timestamp) ? timestamp : null);
         setCheckOutTime(null);
