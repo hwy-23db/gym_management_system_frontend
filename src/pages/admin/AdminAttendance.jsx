@@ -545,7 +545,7 @@ export default function AdminAttendance() {
                     <div style={mutedText}>Loading...</div>
                   ) : (
                     <>
-+                     {renderQrFromUrl(qrLinks.user_qr, "member-qr-code")}
+                     {renderQrFromUrl(qrLinks.user_qr, "member-qr-code")}
                       <div className="small mt-3" style={bodyText}>
                         <div>
                           <b>Scan link:</b> <span style={mutedText}>{qrLinks.user_qr || "-"}</span>
@@ -575,9 +575,9 @@ export default function AdminAttendance() {
                     </button>
                   </div>
                   <div className="mb-3" style={mutedText}>
-                    Trainers scan this QR for working day tracking and payroll.
+                    Trainers scan this QR for working day tracking and payroll. 
                   </div>
-
+                  
                   {qrLoading ? (
                     <div style={mutedText}>Loading...</div>
                   ) : (
