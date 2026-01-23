@@ -260,12 +260,12 @@ export default function AdminSettings() {
       </div>
 
       {/* Logout only */}
-      <div style={card}>
+      {/* <div style={card}>
         <button style={logoutBtn} onClick={handleLogout}>
           <FaLongArrowAltRight />
           <span>Logout</span>
         </button>
-      </div>
+      </div> */}
     </div>
   );
 }
