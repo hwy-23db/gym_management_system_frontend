@@ -17,6 +17,7 @@ const AdminTrainerBookings = lazy(() =>
 const AdminAttendance = lazy(() => import("./pages/admin/AdminAttendance"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const AdminBlogs = lazy(() => import("./pages/admin/AdminBlogs"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 
 /* Trainer */
 const TrainerLayout = lazy(() => import("./layouts/TrainerLayout"));

@@ -24,6 +24,8 @@ const emptyEdit = {
   email: "",
   phone: "",
   role: "user",
+  password: "",
+  password_confirmation: "",
 };
 
 function roleBadge(roleRaw) {

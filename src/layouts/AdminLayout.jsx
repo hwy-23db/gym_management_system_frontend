@@ -70,6 +70,10 @@ export default function AdminLayout() {
           <NavLink to="/admin/blogs" className={({isActive}) => `admin-link ${isActive ? "active" : ""}`}>
             <i className="bi bi-journal-text"></i> Blogs
           </NavLink>
+
+          <NavLink to="/admin/settings" className={({isActive}) => `admin-link ${isActive ? "active" : ""}`}>
+            <i className="bi bi-gear"></i> Settings
+          </NavLink>
         </div>
 
         <hr style={{ borderColor: "rgba(255,255,255,0.15)" }} />
