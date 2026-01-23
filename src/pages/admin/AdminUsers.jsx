@@ -147,6 +147,8 @@ export default function AdminUsers() {
       email: u?.email || "",
       phone: u?.phone || "",
       role: (u?.role || "user").toLowerCase(),
+      password: "",
+      password_confirmation: "",
     });
     setShowEdit(true);
   };
@@ -161,13 +163,28 @@ export default function AdminUsers() {
     setSavingEdit(true);
 
     try {
-      // ⚠️ This route does NOT exist yet in your API. Add backend in section (2).
-      await axiosClient.patch(`/users/${editForm.id}`, {
+       if (
+        editForm.password &&
+        editForm.password !== editForm.password_confirmation
+      ) {
+        setMsg({ type: "danger", text: "Passwords do not match." });
+        setSavingEdit(false);
+        return;
+      }
+
+      const payload = {
         name: editForm.name,
         email: editForm.email,
         phone: editForm.phone,
         role: editForm.role, // keep as user/trainer
-      });
+     };
+
+      if (editForm.password) {
+        payload.password = editForm.password;
+      }
+
+      // ⚠️ This route does NOT exist yet in your API. Add backend in section (2).
+      await axiosClient.patch(`/users/${editForm.id}`, payload);
 
       setMsg({ type: "success", text: "User updated successfully." });
       setShowEdit(false);
@@ -500,6 +517,36 @@ export default function AdminUsers() {
                       <option value="trainer" className="fw-bold text-white">Trainer</option>
                     </select>
                   </div>
+
+                  <div className="mt-2">
+                    <label className="form-label fw-bold">New Password</label>
+                    <input
+                      type="password"
+                      className="form-control"
+                      value={editForm.password}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, password: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className="mt-2">
+                    <label className="form-label fw-bold">
+                      Confirm Password
+                    </label>
+                    <input
+                      type="password"
+                      className="form-control"
+                      value={editForm.password_confirmation}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          password_confirmation: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
 
                   
                 </div>

@@ -109,6 +109,7 @@ export default function App() {
           <Route path="attendance" element={<AdminAttendance />} />
           <Route path="messages" element={<AdminMessages />} />
           <Route path="blogs" element={<AdminBlogs />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
 
         {/* User ✅ FIXED (nested routes correctly under /user) */}
