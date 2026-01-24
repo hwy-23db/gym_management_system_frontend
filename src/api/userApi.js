@@ -17,4 +17,4 @@ export const sendUserMessage = (message) =>
   axiosClient.post("/user/messages", { message });
 
 export const updateUserProfile = (payload) =>
-  axiosClient.patch("/user/profile", payload);
+  axiosClient.put("/user/profile", payload);
