@@ -51,6 +51,7 @@ export default function AdminTrainerBookings() {
   const [optionsLoading, setOptionsLoading] = useState(false);
   const [members, setMembers] = useState([]);
   const [trainers, setTrainers] = useState([]);
+  const [packageTypeOptions, setPackageTypeOptions] = useState(["personal", "monthly", "duo"]);
   const [statusOptions, setStatusOptions] = useState(["pending", "confirmed", "cancelled"]);
   const [paidOptions, setPaidOptions] = useState(["unpaid", "paid"]);
   const [defaultPrice, setDefaultPrice] = useState(30000);
@@ -65,8 +66,7 @@ export default function AdminTrainerBookings() {
   // form fields
   const [memberId, setMemberId] = useState("");
   const [trainerId, setTrainerId] = useState("");
-  const [sessionDatetime, setSessionDatetime] = useState("");
-  const [durationMinutes, setDurationMinutes] = useState("60");
+  const [packageType, setPackageType] = useState("");
   const [sessionsCount, setSessionsCount] = useState("1");
   const [pricePerSession, setPricePerSession] = useState("");
   const [status, setStatus] = useState("pending");
@@ -76,8 +76,7 @@ export default function AdminTrainerBookings() {
   const resetForm = () => {
     setMemberId("");
     setTrainerId("");
-    setSessionDatetime("");
-    setDurationMinutes("60");
+    setPackageType("");
     setSessionsCount("1");
     setPricePerSession(""); // will set default on options load
     setStatus("pending");
@@ -119,6 +118,11 @@ export default function AdminTrainerBookings() {
       const res = await axiosClient.get("/trainer-bookings/options");
       setMembers(Array.isArray(res.data?.members) ? res.data.members : []);
       setTrainers(Array.isArray(res.data?.trainers) ? res.data.trainers : []);
+      setPackageTypeOptions(
+        Array.isArray(res.data?.package_types) && res.data.package_types.length > 0
+          ? res.data.package_types
+          : ["personal", "monthly", "duo"]
+      );
       setDefaultPrice(Number(res.data?.default_price_per_session ?? 30000));
       setStatusOptions(Array.isArray(res.data?.status_options) ? res.data.status_options : ["pending", "confirmed", "cancelled"]);
       setPaidOptions(Array.isArray(res.data?.paid_status_options) ? res.data.paid_status_options : ["unpaid", "paid"]);
@@ -127,6 +131,7 @@ export default function AdminTrainerBookings() {
       setPricePerSession(String(res.data?.default_price_per_session ?? 30000));
       setStatus("pending");
       setPaidStatus("unpaid");
+      setPackageType("");
     } catch (e) {
       setMsg({
         type: "danger",
@@ -142,26 +147,21 @@ export default function AdminTrainerBookings() {
 
     if (!memberId) return setMsg({ type: "danger", text: "Please select a member." });
     if (!trainerId) return setMsg({ type: "danger", text: "Please select a trainer." });
-    if (!sessionDatetime) return setMsg({ type: "danger", text: "Please choose session date & time." });
+    if (!packageType) return setMsg({ type: "danger", text: "Please select a package type." });
 
-    const duration = Number(durationMinutes);
     const sessions = Number(sessionsCount);
     const price = Number(pricePerSession);
 
-    if (Number.isNaN(duration) || duration <= 0) return setMsg({ type: "danger", text: "Duration must be a valid number." });
     if (Number.isNaN(sessions) || sessions <= 0) return setMsg({ type: "danger", text: "Sessions must be a valid number." });
     if (Number.isNaN(price) || price < 0) return setMsg({ type: "danger", text: "Price per session must be valid." });
 
     setBusyKey("create");
     try {
-      // datetime-local -> backend "YYYY-MM-DD HH:mm:ss"
-      const session_datetime = sessionDatetime.replace("T", " ") + ":00";
-
+  
       const payload = {
         member_id: Number(memberId),
         trainer_id: Number(trainerId),
-        session_datetime,
-        duration_minutes: duration,
+        package_type: packageType,
         sessions_count: sessions,
         price_per_session: price,
         status,
@@ -431,27 +431,23 @@ export default function AdminTrainerBookings() {
                   </div>
 
                   <div className="col-12 col-md-6">
-                    <label className="form-label fw-bold">Date & Time</label>
-                    <input
-                      type="datetime-local"
-                      className="form-control"
-                      value={sessionDatetime}
-                      onChange={(e) => setSessionDatetime(e.target.value)}
+                                        <label className="form-label fw-bold">Package Type</label>
+                    <select
+                      className="form-select bg-dark"
+                      value={packageType}
+                      onChange={(e) => setPackageType(e.target.value)}
                       disabled={optionsLoading}
-                    />
+                   >
+                      <option value="" className="fw-bold text-white">Select package type</option>
+                      {packageTypeOptions.map((type) => (
+                        <option key={type} value={type}>
+                          {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  <div className="col-12 col-md-3">
-                    <label className="form-label fw-bold">Duration (min)</label>
-                    <input
-                      className="form-control"
-                      value={durationMinutes}
-                      onChange={(e) => setDurationMinutes(e.target.value)}
-                      disabled={optionsLoading}
-                    />
-                  </div>
-
-                  <div className="col-12 col-md-3">
+                  <div className="col-12 col-md-6">
                     <label className="form-label fw-bold">Sessions</label>
                     <input
                       className="form-control"
