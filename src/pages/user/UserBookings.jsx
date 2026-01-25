@@ -155,12 +155,21 @@ export default function UserBookings() {
     fetchBookings();
   }, [fetchBookings]);
 
-  const confirmSession = async (bookingId) => {
+  const confirmSession = async (bookingId, event) => {
     if (!bookingId) return;
+    event?.stopPropagation?.();
     setMsg(null);
     setBusyKey(`confirm-${bookingId}`);
     try {
-      const res = await axiosClient.post(`/user/bookings/${bookingId}/confirm`);
+      let res;
+      try {
+        res = await axiosClient.post(`/user/bookings/${bookingId}/confirm`);
+      } catch (innerError) {
+        if (innerError?.response?.status !== 404) {
+          throw innerError;
+        }
+        res = await axiosClient.post(`/user/subscriptions/${bookingId}/confirm`);
+      }
       setMsg({ type: "success", text: res?.data?.message || "Session confirmed." });
       await fetchBookings();
     } catch (e) {
@@ -344,7 +353,7 @@ export default function UserBookings() {
                     <span style={{ opacity: 0.8 }}>Session confirmation</span>
                     <button
                       className="btn btn-sm btn-outline-info"
-                      onClick={() => confirmSession(id)}
+                     onClick={(event) => confirmSession(id, event)}
                       disabled={isCompleted || busyKey === `confirm-${id}`}
                       title={isCompleted ? "All sessions completed" : "Confirm this session"}
                     >
