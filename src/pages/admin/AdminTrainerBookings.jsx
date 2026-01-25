@@ -447,7 +447,7 @@ export default function AdminTrainerBookings() {
           aria-modal="true"
         >
           <div className="modal-dialog modal-dialog-centered modal-lg" role="document">
-            <div className="modal-content bg-dark text-light">
+            <div className="modal-content bg-dark text-light admin-modal">
               <div className="modal-header border-secondary">
                 <h5 className="modal-title">Create Trainer Booking</h5>
                 <button
