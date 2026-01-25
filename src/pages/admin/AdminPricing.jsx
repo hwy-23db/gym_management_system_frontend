@@ -38,10 +38,10 @@ export default function AdminPricing() {
       const res = await axiosClient.get("/pricing");
       const p = res.data?.subscription_prices || {};
 
-      const oneMonth = p.one_month ?? "";
-      const threeMonths = p.three_months ?? "";
-      const sixMonths = p.six_months ?? "";
-      const twelveMonths = p.twelve_months ?? "";
+      const oneMonth = p.one_month_subscription_price ?? p.one_month ?? "";
+      const threeMonths = p.three_month_subscription_price ?? p.three_months ?? "";
+      const sixMonths = p.six_month_subscription_price ?? p.six_months ?? "";
+      const twelveMonths = p.twelve_month_subscription_price ?? p.twelve_months ?? "";
 
       setPrices({ oneMonth, threeMonths, sixMonths, twelveMonths });
       setInputs({
@@ -93,21 +93,21 @@ export default function AdminPricing() {
 
        if (type === "threeMonths") {
         const res = await axiosClient.put("/pricing/three-months", {
-          three_months_subscription_price: value,
+          three_month_subscription_price: value,
         });
         setMsg({ type: "success", text: res?.data?.message || "Three-month price updated." });
       }
 
        if (type === "sixMonths") {
         const res = await axiosClient.put("/pricing/six-months", {
-          six_months_subscription_price: value,
+          six_month_subscription_price: value,
         });
         setMsg({ type: "success", text: res?.data?.message || "Six-month price updated." });
       }
 
       if (type === "twelveMonths") {
         const res = await axiosClient.put("/pricing/twelve-months", {
-          twelve_months_subscription_price: value,
+          twelve_month_subscription_price: value,
         });
         setMsg({ type: "success", text: res?.data?.message || "Twelve-month price updated." });
       }
