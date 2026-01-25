@@ -63,6 +63,12 @@ function toNumber(value) {
   return Number.isNaN(n) ? null : n;
 }
 
+function isCompletedStatus(value) {
+  const s = String(value || "").toLowerCase();
+  return s.includes("complete") || s.includes("completed") || s.includes("done");
+}
+
+
 function getSessionProgress(booking) {
   const total = toNumber(pick(booking, ["sessions_count", "session_count", "sessions"]));
   const remaining = toNumber(
@@ -74,6 +80,11 @@ function getSessionProgress(booking) {
 
   if (remaining !== null) return { total, remaining: Math.max(0, remaining) };
   if (used !== null) return { total, remaining: Math.max(0, total - used) };
+
+  if (isCompletedStatus(pick(booking, ["status", "state"])) && total !== null) {
+    return { total, remaining: 0 };
+  }
+
 
   return { total, remaining: total };
 }
@@ -260,7 +271,9 @@ export default function UserBookings() {
             ]) || pick(b, ["booking_date", "date"]);
           const sessionsCount = pick(b, ["sessions_count", "session_count", "sessions"]);
           const { total: totalSessions, remaining: remainingSessions } = getSessionProgress(b);
-          const isCompleted = totalSessions !== null && remainingSessions === 0;
+          const isCompleted =
+            (totalSessions !== null && remainingSessions === 0) ||
+            isCompletedStatus(pick(b, ["status", "state"]));
 
           const note = pick(b, ["note", "remark", "message", "description"]);
 

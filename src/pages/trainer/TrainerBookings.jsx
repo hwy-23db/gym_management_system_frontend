@@ -50,6 +50,11 @@ function toNumber(value) {
   return Number.isNaN(n) ? null : n;
 }
 
+function isCompletedStatus(value) {
+  const s = String(value || "").toLowerCase();
+  return s.includes("complete") || s.includes("completed") || s.includes("done");
+}
+
 function getSessionProgress(booking) {
   const total = toNumber(
     booking?.sessions_count ?? booking?.session_count ?? booking?.sessions
@@ -64,6 +69,10 @@ function getSessionProgress(booking) {
   if (total === null) return { total: null, remaining: null };
   if (remaining !== null) return { total, remaining: Math.max(0, remaining) };
   if (used !== null) return { total, remaining: Math.max(0, total - used) };
+
+  if (isCompletedStatus(booking?.status) && total !== null) {
+    return { total, remaining: 0 };
+  }
 
   return { total, remaining: total };
 }
@@ -302,7 +311,9 @@ export default function TrainerBooking() {
           {filtered.map((b, i) => {
             const bookingId = b?.id ?? i;
             const { total: totalSessions, remaining: remainingSessions } = getSessionProgress(b);
-            const isCompleted = totalSessions !== null && remainingSessions === 0;
+            const isCompleted =
+              (totalSessions !== null && remainingSessions === 0) ||
+              isCompletedStatus(b?.status);
             return (
             <div
               key={bookingId}
