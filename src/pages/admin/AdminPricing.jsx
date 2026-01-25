@@ -13,15 +13,17 @@ export default function AdminPricing() {
   const [msg, setMsg] = useState(null);
 
   const [prices, setPrices] = useState({
-    monthly: "",
-    quarterly: "",
-    annual: "",
+    oneMonth: "",
+    threeMonths: "",
+    sixMonths: "",
+    twelveMonths: "",
   });
 
   const [inputs, setInputs] = useState({
-    monthly: "",
-    quarterly: "",
-    annual: "",
+    oneMonth: "",
+    threeMonths: "",
+    sixMonths: "",
+    twelveMonths: "",
   });
 
   const [trainers, setTrainers] = useState([]);
@@ -36,15 +38,17 @@ export default function AdminPricing() {
       const res = await axiosClient.get("/pricing");
       const p = res.data?.subscription_prices || {};
 
-      const monthly = p.monthly ?? "";
-      const quarterly = p.quarterly ?? "";
-      const annual = p.annual ?? "";
+      const oneMonth = p.one_month ?? "";
+      const threeMonths = p.three_months ?? "";
+      const sixMonths = p.six_months ?? "";
+      const twelveMonths = p.twelve_months ?? "";
 
-      setPrices({ monthly, quarterly, annual });
+      setPrices({ oneMonth, threeMonths, sixMonths, twelveMonths });
       setInputs({
-        monthly: String(monthly),
-        quarterly: String(quarterly),
-        annual: String(annual),
+        oneMonth: String(oneMonth),
+        threeMonths: String(threeMonths),
+        sixMonths: String(sixMonths),
+        twelveMonths: String(twelveMonths),
       });
 
       const t = Array.isArray(res.data?.trainers) ? res.data.trainers : [];
@@ -80,25 +84,32 @@ export default function AdminPricing() {
 
     setBusyKey(type);
     try {
-      if (type === "monthly") {
-        const res = await axiosClient.put("/pricing/monthly", {
-          monthly_subscription_price: value,
+        if (type === "oneMonth") {
+        const res = await axiosClient.put("/pricing/one-month", {
+          one_month_subscription_price: value,
         });
-        setMsg({ type: "success", text: res?.data?.message || "Monthly price updated." });
+         setMsg({ type: "success", text: res?.data?.message || "One-month price updated." });
       }
 
-      if (type === "quarterly") {
-        const res = await axiosClient.put("/pricing/quarterly", {
-          quarterly_subscription_price: value,
+       if (type === "threeMonths") {
+        const res = await axiosClient.put("/pricing/three-months", {
+          three_months_subscription_price: value,
         });
-        setMsg({ type: "success", text: res?.data?.message || "Quarterly price updated." });
+        setMsg({ type: "success", text: res?.data?.message || "Three-month price updated." });
       }
 
-      if (type === "annual") {
-        const res = await axiosClient.put("/pricing/annual", {
-          annual_subscription_price: value,
+       if (type === "sixMonths") {
+        const res = await axiosClient.put("/pricing/six-months", {
+          six_months_subscription_price: value,
         });
-        setMsg({ type: "success", text: res?.data?.message || "Annual price updated." });
+        setMsg({ type: "success", text: res?.data?.message || "Six-month price updated." });
+      }
+
+      if (type === "twelveMonths") {
+        const res = await axiosClient.put("/pricing/twelve-months", {
+          twelve_months_subscription_price: value,
+        });
+        setMsg({ type: "success", text: res?.data?.message || "Twelve-month price updated." });
       }
 
       await load();
@@ -157,19 +168,19 @@ export default function AdminPricing() {
 
       {/* ===== Subscription plan pricing ===== */}
       <div className="row g-3 mb-4">
-        {/* Monthly */}
+                {/* One Month */}
         <div className="col-12 col-md-4">
           <div className="card bg-dark text-light h-100 border-secondary">
-            <div className="card-header border-secondary fw-semibold">Monthly Plan</div>
+            <div className="card-header border-secondary fw-semibold">One Month Plan</div>
             <div className="card-body">
-              <div className="admin-muted">Current monthly price</div>
-              <div className="fs-5 fw-bold mb-3">{moneyMMK(prices.monthly)}</div>
+              <div className="admin-muted">Current one-month price</div>
+              <div className="fs-5 fw-bold mb-3">{moneyMMK(prices.oneMonth)}</div>
 
               <div className="input-group mb-3">
                 <input
                   className="form-control"
-                  value={inputs.monthly}
-                  onChange={(e) => setInputs((s) => ({ ...s, monthly: e.target.value }))}
+                  value={inputs.oneMonth}
+                  onChange={(e) => setInputs((s) => ({ ...s, oneMonth: e.target.value }))}
                   placeholder="Enter new price"
                 />
                 <span className="input-group-text">MMK</span>
@@ -177,28 +188,28 @@ export default function AdminPricing() {
 
               <button
                 className="btn btn-primary w-100"
-                disabled={busyKey === "monthly"}
-                onClick={() => updatePlan("monthly")}
+                disabled={busyKey === "oneMonth"}
+                onClick={() => updatePlan("oneMonth")}
               >
-                {busyKey === "monthly" ? "Updating..." : "Update"}
+                {busyKey === "oneMonth" ? "Updating..." : "Update"}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Quarterly */}
+        {/* Three Months */}
         <div className="col-12 col-md-4">
           <div className="card bg-dark text-light h-100 border-secondary">
-            <div className="card-header border-secondary fw-semibold">Quarterly Plan</div>
+            <div className="card-header border-secondary fw-semibold">Three Months Plan</div>
             <div className="card-body">
-              <div className="admin-muted">Current quarterly price</div>
-              <div className="fs-5 fw-bold mb-3">{moneyMMK(prices.quarterly)}</div>
+              <div className="admin-muted">Current three-month price</div>
+              <div className="fs-5 fw-bold mb-3">{moneyMMK(prices.threeMonths)}</div>
 
               <div className="input-group mb-3">
                 <input
                   className="form-control"
-                  value={inputs.quarterly}
-                  onChange={(e) => setInputs((s) => ({ ...s, quarterly: e.target.value }))}
+                  value={inputs.threeMonths}
+                  onChange={(e) => setInputs((s) => ({ ...s, threeMonths: e.target.value }))}
                   placeholder="Enter new price"
                 />
                 <span className="input-group-text">MMK</span>
@@ -206,28 +217,28 @@ export default function AdminPricing() {
 
               <button
                 className="btn btn-primary w-100"
-                disabled={busyKey === "quarterly"}
-                onClick={() => updatePlan("quarterly")}
+                disabled={busyKey === "threeMonths"}
+                onClick={() => updatePlan("threeMonths")}
               >
-                {busyKey === "quarterly" ? "Updating..." : "Update"}
+                {busyKey === "threeMonths" ? "Updating..." : "Update"}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Annual */}
+         {/* Six Months */}
         <div className="col-12 col-md-4">
           <div className="card bg-dark text-light h-100 border-secondary">
-            <div className="card-header border-secondary fw-semibold">Annual Plan</div>
+            <div className="card-header border-secondary fw-semibold">Six Months Plan</div>
             <div className="card-body">
-              <div className="admin-muted">Current annual price</div>
-              <div className="fs-5 fw-bold mb-3">{moneyMMK(prices.annual)}</div>
+              <div className="admin-muted">Current six-month price</div>
+              <div className="fs-5 fw-bold mb-3">{moneyMMK(prices.sixMonths)}</div>
 
               <div className="input-group mb-3">
                 <input
                   className="form-control"
-                  value={inputs.annual}
-                  onChange={(e) => setInputs((s) => ({ ...s, annual: e.target.value }))}
+                  value={inputs.sixMonths}
+                  onChange={(e) => setInputs((s) => ({ ...s, sixMonths: e.target.value }))}
                   placeholder="Enter new price"
                 />
                 <span className="input-group-text">MMK</span>
@@ -235,10 +246,39 @@ export default function AdminPricing() {
 
               <button
                 className="btn btn-primary w-100"
-                disabled={busyKey === "annual"}
-                onClick={() => updatePlan("annual")}
+                disabled={busyKey === "sixMonths"}
+                onClick={() => updatePlan("sixMonths")}
               >
-                {busyKey === "annual" ? "Updating..." : "Update"}
+                {busyKey === "sixMonths" ? "Updating..." : "Update"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Twelve Months */}
+        <div className="col-12 col-md-4">
+          <div className="card bg-dark text-light h-100 border-secondary">
+            <div className="card-header border-secondary fw-semibold">Twelve Months Plan</div>
+            <div className="card-body">
+              <div className="admin-muted">Current twelve-month price</div>
+              <div className="fs-5 fw-bold mb-3">{moneyMMK(prices.twelveMonths)}</div>
+
+              <div className="input-group mb-3">
+                <input
+                  className="form-control"
+                  value={inputs.twelveMonths}
+                  onChange={(e) => setInputs((s) => ({ ...s, twelveMonths: e.target.value }))}
+                  placeholder="Enter new price"
+                />
+                <span className="input-group-text">MMK</span>
+              </div>
+
+              <button
+                className="btn btn-primary w-100"
+                disabled={busyKey === "twelveMonths"}
+                onClick={() => updatePlan("twelveMonths")}
+              >
+                {busyKey === "twelveMonths" ? "Updating..." : "Update"}
               </button>
             </div>
           </div>
