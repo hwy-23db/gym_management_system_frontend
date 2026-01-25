@@ -85,6 +85,11 @@ export default function AdminTrainerBookings() {
   const findSelectedPackage = (list = trainerPackages, selected = packageType) =>
     list.find((pkg) => packageKey(pkg) === selected);
 
+  const getPackageId = (pkg) => {
+    const value = pkg?.id ?? pkg?.package_id ?? pkg?.packageId ?? "";
+    const numeric = Number(value);
+    return Number.isNaN(numeric) ? null : numeric;
+  };
 
   const resetForm = () => {
     setMemberId("");
@@ -209,9 +214,15 @@ export default function AdminTrainerBookings() {
     try {
   
       const selectedPackage = findSelectedPackage();
+      if (trainerPackages.length > 0 && !selectedPackage) {
+        setBusyKey(null);
+        return setMsg({ type: "danger", text: "Please select a package from the list." });
+      }
+      const selectedPackageId = getPackageId(selectedPackage);
       const payload = {
         member_id: Number(memberId),
         trainer_id: Number(trainerId),
+        trainer_package_id: selectedPackageId ?? undefined,
         package_type:
           selectedPackage?.package_type ??
           selectedPackage?.type ??
