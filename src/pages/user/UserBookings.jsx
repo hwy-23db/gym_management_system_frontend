@@ -160,7 +160,7 @@ export default function UserBookings() {
     setMsg(null);
     setBusyKey(`confirm-${bookingId}`);
     try {
-      const res = await axiosClient.post(`/user/bookings/${bookingId}/confirm-session`);
+      const res = await axiosClient.post(`/user/bookings/${bookingId}/confirm`);
       setMsg({ type: "success", text: res?.data?.message || "Session confirmed." });
       await fetchBookings();
     } catch (e) {
