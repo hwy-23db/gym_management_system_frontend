@@ -52,6 +52,8 @@ export default function AdminTrainerBookings() {
   const [members, setMembers] = useState([]);
   const [trainers, setTrainers] = useState([]);
   const [packageTypeOptions, setPackageTypeOptions] = useState(["personal", "monthly", "duo"]);
+  const [trainerPackages, setTrainerPackages] = useState([]);
+  const [packagesLoading, setPackagesLoading] = useState(false);
   const [statusOptions, setStatusOptions] = useState(["pending", "confirmed", "cancelled"]);
   const [paidOptions, setPaidOptions] = useState(["unpaid", "paid"]);
   const [defaultPrice, setDefaultPrice] = useState(30000);
@@ -67,11 +69,18 @@ export default function AdminTrainerBookings() {
   const [memberId, setMemberId] = useState("");
   const [trainerId, setTrainerId] = useState("");
   const [packageType, setPackageType] = useState("");
+  const [priceSource, setPriceSource] = useState("package"); // package | manual
   const [sessionsCount, setSessionsCount] = useState("1");
   const [pricePerSession, setPricePerSession] = useState("");
   const [status, setStatus] = useState("pending");
   const [paidStatus, setPaidStatus] = useState("unpaid");
   const [notes, setNotes] = useState("");
+
+  const packageKey = (pkg) => String(pkg?.type || pkg?.name || pkg?.id || "");
+
+  const findSelectedPackage = (list = trainerPackages, selected = packageType) =>
+    list.find((pkg) => packageKey(pkg) === selected);
+
 
   const resetForm = () => {
     setMemberId("");
@@ -79,6 +88,7 @@ export default function AdminTrainerBookings() {
     setPackageType("");
     setSessionsCount("1");
     setPricePerSession(""); // will set default on options load
+    setPriceSource("package");
     setStatus("pending");
     setPaidStatus("unpaid");
     setNotes("");
@@ -108,6 +118,39 @@ export default function AdminTrainerBookings() {
     }
   };
 
+    const loadTrainerPackages = async () => {
+    setPackagesLoading(true);
+    try {
+      const res = await axiosClient.get("/trainer-packages");
+      const list =
+        res.data?.packages ??
+        res.data?.trainer_packages ??
+        res.data?.data ??
+        res.data ??
+        [];
+      const normalized = Array.isArray(list) ? list : [];
+      setTrainerPackages(normalized);
+
+      if (packageType && priceSource === "package") {
+        const selected = findSelectedPackage(normalized);
+        const nextPrice = Number(
+          selected?.price_per_session ?? selected?.price ?? selected?.amount ?? NaN
+        );
+        if (!Number.isNaN(nextPrice)) {
+          setPricePerSession(String(nextPrice));
+        }
+      }
+    } catch (e) {
+      setMsg({
+        type: "danger",
+        text: e?.response?.data?.message || "Failed to load trainer packages.",
+      });
+    } finally {
+      setPackagesLoading(false);
+    }
+  };
+
+
   const openCreateModal = async () => {
     setMsg(null);
     setShowModal(true);
@@ -129,6 +172,7 @@ export default function AdminTrainerBookings() {
 
       // default in UI
       setPricePerSession(String(res.data?.default_price_per_session ?? 30000));
+      setPriceSource("package");
       setStatus("pending");
       setPaidStatus("unpaid");
       setPackageType("");
@@ -204,6 +248,26 @@ export default function AdminTrainerBookings() {
   useEffect(() => {
     loadBookings();
   }, []);
+
+  useEffect(() => {
+    if (!showModal) return undefined;
+    loadTrainerPackages();
+    const interval = setInterval(loadTrainerPackages, 15000);
+    return () => clearInterval(interval);
+  }, [showModal]);
+
+  useEffect(() => {
+    if (!packageType) return;
+    if (priceSource !== "package") return;
+    const selected = findSelectedPackage();
+    const selectedPrice = Number(
+      selected?.price_per_session ?? selected?.price ?? selected?.amount ?? NaN
+    );
+    if (!Number.isNaN(selectedPrice)) {
+      setPricePerSession(String(selectedPrice));
+    }
+  }, [packageType, priceSource, trainerPackages]);
+
 
   const statusBadge = (s) => {
     const v = String(s || "").toLowerCase();
@@ -431,19 +495,38 @@ export default function AdminTrainerBookings() {
                   </div>
 
                   <div className="col-12 col-md-6">
-                                        <label className="form-label fw-bold">Package Type</label>
+                   <label className="form-label fw-bold">Package Type</label>
                     <select
                       className="form-select bg-dark"
                       value={packageType}
-                      onChange={(e) => setPackageType(e.target.value)}
-                      disabled={optionsLoading}
+                        onChange={(e) => {
+                        setPackageType(e.target.value);
+                        setPriceSource("package");
+                      }}
+                      disabled={optionsLoading || packagesLoading}
                    >
                       <option value="" className="fw-bold text-white">Select package type</option>
-                      {packageTypeOptions.map((type) => (
-                        <option key={type} value={type}>
-                          {type.charAt(0).toUpperCase() + type.slice(1)}
-                        </option>
-                      ))}
+                        {trainerPackages.length > 0
+                        ? trainerPackages.map((pkg) => {
+                          const key = packageKey(pkg);
+                          const label =
+                            pkg?.name ||
+                            pkg?.type ||
+                            (pkg?.id ? `Package #${pkg.id}` : "Package");
+                          const priceLabel = moneyMMK(
+                            pkg?.price_per_session ?? pkg?.price ?? pkg?.amount
+                          );
+                          return (
+                            <option key={key} value={key}>
+                              {label} {priceLabel !== "-" ? `- ${priceLabel}` : ""}
+                            </option>
+                          );
+                        })
+                        : packageTypeOptions.map((type) => (
+                          <option key={type} value={type}>
+                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                          </option>
+                        ))}
                     </select>
                   </div>
 
@@ -462,10 +545,21 @@ export default function AdminTrainerBookings() {
                     <input
                       className="form-control"
                       value={pricePerSession}
-                      onChange={(e) => setPricePerSession(e.target.value)}
+                      onChange={(e) => {
+                        setPricePerSession(e.target.value);
+                        setPriceSource("manual");
+                      }}
                       disabled={optionsLoading}
                     />
-                    <div className="admin-muted mt-1">Default: {moneyMMK(defaultPrice)}</div>
+                     <div className="admin-muted mt-1">
+                      {priceSource === "package" && packageType && findSelectedPackage()
+                        ? `Package price: ${moneyMMK(
+                          findSelectedPackage()?.price_per_session ??
+                          findSelectedPackage()?.price ??
+                          findSelectedPackage()?.amount
+                        )}`
+                        : `Default: ${moneyMMK(defaultPrice)}`}
+                    </div>
                   </div>
 
                   <div className="col-12 col-md-3">
