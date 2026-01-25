@@ -40,6 +40,31 @@ function formatDateTimeVideoStyle(s) {
   return `${y}-${m}-${day} ${hours}:${minutes} ${ampm}`;
 }
 
+function toNumber(value) {
+  const n = Number(value);
+  return Number.isNaN(n) ? null : n;
+}
+
+function getSessionProgress(booking) {
+  const total = toNumber(booking?.sessions_count ?? booking?.session_count ?? booking?.sessions);
+  const remaining =
+    toNumber(booking?.sessions_remaining ?? booking?.remaining_sessions ?? booking?.sessions_left);
+  const used = toNumber(booking?.sessions_used ?? booking?.sessions_completed ?? booking?.used_sessions);
+
+  if (total === null) return { total: null, remaining: null };
+
+  if (remaining !== null) {
+    return { total, remaining: Math.max(0, remaining) };
+  }
+
+  if (used !== null) {
+    return { total, remaining: Math.max(0, total - used) };
+  }
+
+  return { total, remaining: total };
+}
+
+
 export default function AdminTrainerBookings() {
   const [loading, setLoading] = useState(false);
   const [busyKey, setBusyKey] = useState(null);
@@ -244,6 +269,23 @@ export default function AdminTrainerBookings() {
       setMsg({
         type: "danger",
         text: e?.response?.data?.message || "Failed to create booking.",
+      });
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const markActive = async (id) => {
+    setMsg(null);
+    setBusyKey(`active-${id}`);
+    try {
+      const res = await axiosClient.patch(`/trainer-bookings/${id}/mark-active`);
+      setMsg({ type: "success", text: res?.data?.message || "Marked as active." });
+      await loadBookings();
+    } catch (e) {
+      setMsg({
+        type: "danger",
+        text: e?.response?.data?.message || "Failed to mark as active.",
       });
     } finally {
       setBusyKey(null);
@@ -457,26 +499,27 @@ export default function AdminTrainerBookings() {
               <th>User Phone</th>
               <th>Trainer</th>
               <th>Trainer Phone</th>
-              <th>Session Time</th>
               <th>Paid Time</th>
-              <th style={{ width: 90 }}>Sessions</th>
+              <th style={{ width: 110 }}>Sessions</th>
               <th style={{ width: 120 }}>Total</th>
               <th style={{ width: 120 }}>Status</th>
               <th style={{ width: 100 }}>Paid</th>
-              <th style={{ width: 140 }}>Actions</th>
+              <th style={{ width: 180 }}>Actions</th>
             </tr>
           </thead>
 
           <tbody>
             {filteredBookings.length === 0 ? (
               <tr>
-                <td colSpan="12" className="text-center text-muted py-4">
+                <td colSpan="11" className="text-center text-muted py-4">
                   {loading ? "Loading..." : "No bookings found."}
                 </td>
               </tr>
             ) : (
               filteredBookings.map((b) => {
                 const isPaid = String(b.paid_status || "").toLowerCase() === "paid";
+                const { total, remaining } = getSessionProgress(b);
+                const isCompleted = total !== null && remaining === 0;
 
                 return (
                   <tr key={b.id}>
@@ -486,16 +529,22 @@ export default function AdminTrainerBookings() {
                     <td>{b.trainer_name || "-"}</td>
                     <td>{b.trainer_phone || "-"}</td>
 
-                    {/* ✅ exact formatting */}
-                    <td>{formatDateTimeVideoStyle(b.session_datetime)}</td>
                     <td>{b.paid_at ? formatDateTimeVideoStyle(b.paid_at) : "-"}</td>
 
-                    <td>{b.sessions_count ?? "-"}</td>
+                    <td>{total === null ? "-" : `${remaining ?? "-"} / ${total}`}</td>
                     <td>{moneyMMK(b.total_price)}</td>
                     <td>{statusBadge(b.status)}</td>
                     <td>{paidBadge(b.paid_status)}</td>
 
                     <td>
+                       <button
+                        className="btn btn-sm btn-outline-info me-2"
+                        disabled={isCompleted || busyKey === `active-${b.id}`}
+                        onClick={() => markActive(b.id)}
+                        title={isCompleted ? "All sessions completed" : "Mark booking as active"}
+                      >
+                        {busyKey === `active-${b.id}` ? "..." : "Active"}
+                      </button>
                       <button
                         className="btn btn-sm btn-success"
                         disabled={isPaid || busyKey === `paid-${b.id}`}
