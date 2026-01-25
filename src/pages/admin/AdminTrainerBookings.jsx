@@ -267,17 +267,24 @@ export default function AdminTrainerBookings() {
     return () => clearInterval(interval);
   }, [showModal]);
 
+  const selectedPackage = useMemo(() => findSelectedPackage(), [packageType, trainerPackages]);
+  const selectedPackageCount =
+    selectedPackage?.duration_months ?? selectedPackage?.sessions_count ?? "";
+  const countLabel = selectedPackage?.duration_months ? "Month Count" : "Session Count";
+
   useEffect(() => {
     if (!packageType) return;
     if (priceSource !== "package") return;
-    const selected = findSelectedPackage();
     const selectedPrice = Number(
-      selected?.price_per_session ?? selected?.price ?? selected?.amount ?? NaN
+       selectedPackage?.price_per_session ?? selectedPackage?.price ?? selectedPackage?.amount ?? NaN
     );
     if (!Number.isNaN(selectedPrice)) {
       setPricePerSession(String(selectedPrice));
     }
-  }, [packageType, priceSource, trainerPackages]);
+   if (selectedPackageCount) {
+      setSessionsCount(String(selectedPackageCount));
+    }
+  }, [packageType, priceSource, selectedPackage, selectedPackageCount]);
 
     const packagesByType = useMemo(() => {
     if (!Array.isArray(trainerPackages)) {
@@ -627,7 +634,7 @@ export default function AdminTrainerBookings() {
                   </div>
 
                   <div className="col-12 col-md-6">
-                    <label className="form-label fw-bold">Sessions</label>
+                  <label className="form-label fw-bold">{countLabel}</label>
                     <input
                       className="form-control"
                       value={sessionsCount}
