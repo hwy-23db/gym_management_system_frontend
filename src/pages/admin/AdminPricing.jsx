@@ -84,21 +84,21 @@ export default function AdminPricing() {
 
     setBusyKey(type);
     try {
-        if (type === "oneMonth") {
+      if (type === "oneMonth") {
         const res = await axiosClient.put("/pricing/one-month", {
           one_month_subscription_price: value,
         });
-         setMsg({ type: "success", text: res?.data?.message || "One-month price updated." });
+        setMsg({ type: "success", text: res?.data?.message || "One-month price updated." });
       }
 
-       if (type === "threeMonths") {
+      if (type === "threeMonths") {
         const res = await axiosClient.put("/pricing/three-months", {
           three_months_subscription_price: value,
         });
         setMsg({ type: "success", text: res?.data?.message || "Three-month price updated." });
       }
 
-       if (type === "sixMonths") {
+      if (type === "sixMonths") {
         const res = await axiosClient.put("/pricing/six-months", {
           six_months_subscription_price: value,
         });
