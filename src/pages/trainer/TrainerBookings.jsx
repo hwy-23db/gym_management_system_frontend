@@ -5,6 +5,7 @@ import { FaCalendar, FaClock, FaPhoneAlt, FaUser } from "react-icons/fa";
 /**
  * Endpoint:
  *   GET /api/trainer/subscriptions
+ *  POST /api/trainer/bookings/{booking}/confirm
  *
  * Response:
  * {
@@ -158,7 +159,7 @@ export default function TrainerBooking() {
     setMsg(null);
     setBusyKey(`confirm-${bookingId}`);
     try {
-      const res = await axiosClient.post(`/trainer/subscriptions/${bookingId}/confirm-session`);
+      const res = await axiosClient.post(`/trainer/bookings/${bookingId}/confirm`);
       setMsg({ type: "success", text: res?.data?.message || "Session confirmed." });
       await fetchBookings();
     } catch (e) {
