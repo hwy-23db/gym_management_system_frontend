@@ -22,7 +22,7 @@ export default function AdminLayout() {
       {/* Sidebar */}
       <aside className="admin-sidebar p-3">
         <div className="mb-3">
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-2 admin-branding">
             <div className="rounded-circle d-flex align-items-center justify-content-center"
                  style={{
                    width: 42, height: 42,
@@ -40,46 +40,56 @@ export default function AdminLayout() {
 
         <div className="d-flex flex-column gap-2">
           <NavLink to="/admin/dashboard" className={({isActive}) => `admin-link ${isActive ? "active" : ""}`}>
-            <i className="bi bi-speedometer2"></i> Dashboard
+            <i className="bi bi-speedometer2"></i>
+            <span className="admin-link-text">Dashboard</span>
           </NavLink>
 
           <NavLink to="/admin/users" className={({isActive}) => `admin-link ${isActive ? "active" : ""}`}>
-            <i className="bi bi-people"></i> Users
+            <i className="bi bi-people"></i>
+            <span className="admin-link-text">Users</span>
           </NavLink>
 
           <NavLink to="/admin/subscriptions" className={({isActive}) => `admin-link ${isActive ? "active" : ""}`}>
-            <i className="bi bi-credit-card-2-front"></i> Subscriptions
+            <i className="bi bi-credit-card-2-front"></i>
+            <span className="admin-link-text">Subscriptions</span>
           </NavLink>
 
           <NavLink to="/admin/pricing" className={({isActive}) => `admin-link ${isActive ? "active" : ""}`}>
-            <i className="bi bi-cash-coin"></i> Pricing
+            <i className="bi bi-cash-coin"></i>
+            <span className="admin-link-text">Pricing</span>
           </NavLink>
 
           <NavLink to="/admin/trainer-bookings" className={({isActive}) => `admin-link ${isActive ? "active" : ""}`}>
-            <i className="bi bi-calendar-check"></i> Trainer Bookings
+            <i className="bi bi-calendar-check"></i>
+            <span className="admin-link-text">Trainer Bookings</span>
           </NavLink>
 
           <NavLink to="/admin/attendance" className={({isActive}) => `admin-link ${isActive ? "active" : ""}`}>
-            <i className="bi bi-qr-code-scan"></i> Attendance
+            <i className="bi bi-qr-code-scan"></i>
+            <span className="admin-link-text">Attendance</span>
           </NavLink>
 
           <NavLink to="/admin/messages" className={({isActive}) => `admin-link ${isActive ? "active" : ""}`}>
-            <i className="bi bi-chat-dots"></i> Messages
+            <i className="bi bi-chat-dots"></i>
+            <span className="admin-link-text">Messages</span>
           </NavLink>
 
           <NavLink to="/admin/blogs" className={({isActive}) => `admin-link ${isActive ? "active" : ""}`}>
-            <i className="bi bi-journal-text"></i> Blogs
+            <i className="bi bi-journal-text"></i>
+            <span className="admin-link-text">Blogs</span>
           </NavLink>
 
           <NavLink to="/admin/settings" className={({isActive}) => `admin-link ${isActive ? "active" : ""}`}>
-            <i className="bi bi-gear"></i> Settings
+            <i className="bi bi-gear"></i>
+            <span className="admin-link-text">Settings</span>
           </NavLink>
         </div>
 
         <hr style={{ borderColor: "rgba(255,255,255,0.15)" }} />
 
-        <button className="btn btn-outline-light w-100" onClick={logout}>
-          <i className="bi bi-box-arrow-right me-2"></i> Logout
+        <button className="btn btn-outline-light w-100 admin-logout" onClick={logout}>
+          <i className="bi bi-box-arrow-right me-2"></i>
+          <span className="admin-logout-text">Logout</span>
         </button>
       </aside>
 
