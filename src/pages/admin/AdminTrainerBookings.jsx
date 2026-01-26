@@ -75,6 +75,15 @@ function getSessionProgress(booking) {
   return { total, remaining: total };
 }
 
+function getMonthCount(booking) {
+  const monthValue =
+    booking?.trainer_package?.duration_months ??
+    booking?.duration_months ??
+    booking?.month_count ??
+    booking?.months_count;
+  return toNumber(monthValue);
+}
+
 
 export default function AdminTrainerBookings() {
   const [loading, setLoading] = useState(false);
@@ -512,6 +521,7 @@ export default function AdminTrainerBookings() {
               <th>Trainer Phone</th>
               <th>Paid Time</th>
               <th style={{ width: 110 }}>Sessions</th>
+              <th style={{ width: 110 }}>Months</th>
               <th style={{ width: 120 }}>Total</th>
               <th style={{ width: 120 }}>Status</th>
               <th style={{ width: 100 }}>Paid</th>
@@ -522,7 +532,7 @@ export default function AdminTrainerBookings() {
           <tbody>
             {filteredBookings.length === 0 ? (
               <tr>
-                <td colSpan="11" className="text-center text-muted py-4">
+                <td colSpan="12" className="text-center text-muted py-4">
                   {loading ? "Loading..." : "No bookings found."}
                 </td>
               </tr>
@@ -530,7 +540,10 @@ export default function AdminTrainerBookings() {
               filteredBookings.map((b) => {
                 const isPaid = String(b.paid_status || "").toLowerCase() === "paid";
                 const { total, remaining } = getSessionProgress(b);
+                const monthCount = getMonthCount(b);
                 const isCompleted = (total !== null && remaining === 0) || isCompletedStatus(b?.status);
+                const sessionDisplay =
+                  monthCount !== null ? "-" : total === null ? "-" : `${remaining ?? "-"} / ${total}`;
 
                 return (
                   <tr key={b.id}>
@@ -542,7 +555,8 @@ export default function AdminTrainerBookings() {
 
                     <td>{b.paid_at ? formatDateTimeVideoStyle(b.paid_at) : "-"}</td>
 
-                    <td>{total === null ? "-" : `${remaining ?? "-"} / ${total}`}</td>
+                    <td>{sessionDisplay}</td>
+                    <td>{monthCount === null ? "-" : monthCount}</td>
                     <td>{moneyMMK(b.total_price)}</td>
                     <td>{statusBadge(b.status)}</td>
                     <td>{paidBadge(b.paid_status)}</td>
