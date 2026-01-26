@@ -6,6 +6,8 @@ import "./AdminLayout.css";
 
 export default function AdminLayout() {
   const nav = useNavigate();
+    // Adjust this value to change the admin sidebar width.
+  const sidebarWidth = "270px";
 
   const logout = async () => {
     try { await logoutApi(); } catch {}
@@ -18,7 +20,7 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="admin-shell d-flex">
+     <div className="admin-shell d-flex" style={{ "--admin-sidebar-width": sidebarWidth }}>
       {/* Sidebar */}
       <aside className="admin-sidebar p-3">
         <div className="mb-3">
