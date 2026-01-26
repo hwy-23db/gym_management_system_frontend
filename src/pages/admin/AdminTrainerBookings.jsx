@@ -50,6 +50,15 @@ function isCompletedStatus(value) {
   return s.includes("complete") || s.includes("completed") || s.includes("done");
 }
 
+function normalizeBookingStatus(value) {
+  const s = String(value || "").toLowerCase();
+  if (s === "confirmed") return "active";
+  if (s === "cancelled" || s === "canceled") return "on-hold";
+  if (s === "hold" || s === "on-hold") return "on-hold";
+  if (s === "completed" || s === "complete" || s === "done") return "completed";
+  return s || "pending";
+}
+
 
 function getSessionProgress(booking) {
   const total = toNumber(booking?.sessions_count ?? booking?.session_count ?? booking?.sessions);
@@ -99,14 +108,18 @@ export default function AdminTrainerBookings() {
   const [packageTypeOptions, setPackageTypeOptions] = useState(["personal", "monthly", "duo"]);
   const [trainerPackages, setTrainerPackages] = useState([]);
   const [packagesLoading, setPackagesLoading] = useState(false);
-  const [statusOptions, setStatusOptions] = useState(["pending", "confirmed", "cancelled"]);
+   const [statusOptions, setStatusOptions] = useState([
+    "pending",
+    "active",
+    "on-hold",
+    "completed",
+  ]);
   const [paidOptions, setPaidOptions] = useState(["unpaid", "paid"]);
   const [defaultPrice, setDefaultPrice] = useState(30000);
 
   // filters
   const [filterPaid, setFilterPaid] = useState("all");     // all | paid | unpaid
-  const [filterStatus, setFilterStatus] = useState("all"); // all | pending | confirmed | cancelled
-
+  const [filterStatus, setFilterStatus] = useState("all"); // all | pending | active | on-hold | completed
   // modal
   const [showModal, setShowModal] = useState(false);
 
@@ -222,7 +235,11 @@ export default function AdminTrainerBookings() {
           : ["personal", "monthly", "duo"]
       );
       setDefaultPrice(Number(res.data?.default_price_per_session ?? 30000));
-      setStatusOptions(Array.isArray(res.data?.status_options) ? res.data.status_options : ["pending", "confirmed", "cancelled"]);
+      setStatusOptions(
+        Array.isArray(res.data?.status_options)
+          ? res.data.status_options
+          : ["pending", "active", "on-hold", "completed"]
+      );
       setPaidOptions(Array.isArray(res.data?.paid_status_options) ? res.data.paid_status_options : ["unpaid", "paid"]);
 
       // default in UI
@@ -329,12 +346,12 @@ export default function AdminTrainerBookings() {
     }
   };
 
- const markHold = async (id) => {
+  const markHold = async (id) => {
     setMsg(null);
     setBusyKey(`hold-${id}`);
     try {
       const res = await axiosClient.patch(`/trainer-bookings/${id}/mark-hold`);
-      setMsg({ type: "success", text: res?.data?.message || "Moved to pending." });
+      setMsg({ type: "success", text: res?.data?.message || "Moved to on-hold." });
       await loadBookings();
     } catch (e) {
       setMsg({
@@ -426,10 +443,16 @@ export default function AdminTrainerBookings() {
 
 
   const statusBadge = (s) => {
-    const v = String(s || "").toLowerCase();
-    if (v === "active") return <span className="badge bg-info text-dark">Active</span>;
-    if (v === "confirmed") return <span className="badge bg-success">Confirmed</span>;
-    if (v === "cancelled") return <span className="badge bg-secondary">Cancelled</span>;
+    const v = normalizeBookingStatus(s);
+    if (v === "active") {
+      return <span className="badge bg-info text-dark">Active</span>;
+    }
+    if (v === "on-hold") {
+      return <span className="badge bg-secondary">On Hold</span>;
+    }
+    if (v === "completed") {
+      return <span className="badge bg-success">Completed</span>;
+    }
     return <span className="badge bg-warning text-dark">Pending</span>;
   };
 
@@ -446,7 +469,7 @@ export default function AdminTrainerBookings() {
 
     const list = bookings.filter((b) => {
       const paid = String(b?.paid_status || "").toLowerCase();
-      const st = String(b?.status || "").toLowerCase();
+      const st = normalizeBookingStatus(b?.status);
 
       if (paidF !== "all" && paid !== paidF) return false;
       if (statusF !== "all" && st !== statusF) return false;
@@ -509,8 +532,9 @@ export default function AdminTrainerBookings() {
           >
             <option value="all" className="fw-bold text-white">All</option>
             <option value="pending" className="fw-bold text-white">Pending</option>
-            <option value="confirmed" className="fw-bold text-white">Confirmed</option>
-            <option value="cancelled" className="fw-bold text-white">Cancelled</option>
+            <option value="active" className="fw-bold text-white">Active</option>
+            <option value="on-hold" className="fw-bold text-white">On Hold</option>
+            <option value="completed" className="fw-bold text-white">Completed</option>
           </select>
         </div>
 
@@ -561,9 +585,10 @@ export default function AdminTrainerBookings() {
                 const { total, remaining } = getSessionProgress(b);
                 const monthCount = getMonthCount(b);
                 const isCompleted = (total !== null && remaining === 0) || isCompletedStatus(b?.status);
-                const statusValue = String(b?.status || "").toLowerCase();
+                const statusValue = normalizeBookingStatus(b?.status);
                 const isPending = statusValue === "pending";
                 const isActive = statusValue === "active";
+                const isOnHold = statusValue === "on-hold";
                 const sessionDisplay =
                   monthCount !== null ? "-" : total === null ? "-" : `${remaining ?? "-"} / ${total}`;
 
@@ -589,21 +614,21 @@ export default function AdminTrainerBookings() {
                           className="btn btn-sm btn-outline-warning me-2"
                           disabled={isCompleted || busyKey === `hold-${b.id}`}
                           onClick={() => markHold(b.id)}
-                          title={isCompleted ? "All sessions completed" : "Move back to pending"}
+                          title={isCompleted ? "All sessions completed" : "Move to on-hold"}
                         >
                           {busyKey === `hold-${b.id}` ? "..." : "Hold"}
                         </button>
                       ) : (
                         <button
                           className="btn btn-sm btn-outline-info me-2"
-                          disabled={isCompleted || !isPending || busyKey === `active-${b.id}`}
+                          disabled={isCompleted || (!isPending && !isOnHold) || busyKey === `active-${b.id}`}
                           onClick={() => markActive(b.id)}
                           title={
                             isCompleted
                               ? "All sessions completed"
-                              : isPending
+                              : isPending || isOnHold
                                 ? "Mark booking as active"
-                                : "Only pending bookings can be activated"
+                                : "Only pending/on-hold bookings can be activated"
                           }
                         >
                           {busyKey === `active-${b.id}` ? "..." : "Active"}
