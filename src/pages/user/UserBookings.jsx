@@ -260,6 +260,14 @@ export default function UserBookings() {
             pick(b?.package, ["name", "title"]) ||
             "—";
 
+          const packageType =
+            pick(b, ["package_type", "package_type_name", "package_category", "package_kind"]) ||
+            pick(b?.package, ["type", "name", "title"]) ||
+            pick(b?.trainer_package, ["type", "name", "title"]) ||
+            pick(b?.package_detail, ["type", "name", "title"]) ||
+            "—";
+
+
           const sessionDateTime =
             pick(b, [
               "session_datetime",
@@ -338,15 +346,13 @@ export default function UserBookings() {
                   </div>
 
                   <div className="d-flex justify-content-between" style={{ gap: 12 }}>
-                     <span style={{ opacity: 0.8 }}>Session time</span>
-                    <b style={{ textAlign: "right" }}>
-                      {sessionDateTime ? fmtDateTime(sessionDateTime) : "—"}
-                    </b>
+                    <span style={{ opacity: 0.8 }}>Package type</span>
+                    <b style={{ textAlign: "right" }}>{toText(packageType)}</b>
                   </div>
 
                 
                   <div className="d-flex justify-content-between" style={{ gap: 12 }}>
-                     <span style={{ opacity: 0.8 }}>Sessions</span>
+                     <span style={{ opacity: 0.8 }}>Sessions Count</span>
                       <b style={{ textAlign: "right" }}>
                       {totalSessions === null
                         ? toText(sessionsCount)

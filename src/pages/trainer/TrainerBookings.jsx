@@ -27,6 +27,14 @@ function getMemberName(b) {
   return b?.member_name || b?.member?.name || b?.user?.name || "—";
 }
 
+function pick(obj, keys) {
+  for (const k of keys) {
+    const v = obj?.[k];
+    if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+  }
+  return null;
+}
+
 /** ✅ NEW: parse backend datetime safely (supports "YYYY-MM-DD HH:mm:ss" and ISO) */
 function parseBackendDateTime(value) {
   if (!value) return null;
@@ -79,6 +87,17 @@ function getSessionProgress(booking) {
 
   return { total, remaining: total };
 }
+
+function getPackageType(booking) {
+  return (
+    pick(booking, ["package_type", "package_type_name", "package_category", "package_kind"]) ||
+    pick(booking?.package, ["type", "name", "title"]) ||
+    pick(booking?.trainer_package, ["type", "name", "title"]) ||
+    pick(booking?.package_detail, ["type", "name", "title"]) ||
+    "—"
+  );
+}
+
 
 /** ✅ UPDATED: supports session_datetime + more fallbacks */
 function getDate(b) {
@@ -229,11 +248,6 @@ export default function TrainerBooking() {
     return pill("rgba(255,255,255,0.12)");
   };
 
-  const formatDuration = (minutes) => {
-    if (!minutes || Number.isNaN(Number(minutes))) return "—";
-    return `${minutes} min`;
-  };
-
   if (!isMobile) {
     return (
       <div className="container py-3" style={{ maxWidth: 720 }}>
@@ -380,13 +394,11 @@ export default function TrainerBooking() {
                       </span>
                     </div>
                     <div className="d-flex justify-content-between">
-                      <span style={{ opacity: 0.8 }}>Session time</span>
-                      <span>
-                        {getDate(b) || "—"} {getTime(b)}
-                      </span>
+                      <span style={{ opacity: 0.8 }}>Package type</span>
+                      <span>{getPackageType(b)}</span>
                     </div>
                     <div className="d-flex justify-content-between">
-                      <span style={{ opacity: 0.8 }}>Sessions</span>
+                      <span style={{ opacity: 0.8 }}>Session Count</span>
                          <span>
                         {totalSessions === null && remainingSessions !== null
                           ? `${remainingSessions} / —`
@@ -394,10 +406,6 @@ export default function TrainerBooking() {
                           ? b?.sessions_count ?? "—"
                           : `${remainingSessions ?? "—"} / ${totalSessions}`}
                       </span>
-                    </div>
-                    <div className="d-flex justify-content-between">
-                      <span style={{ opacity: 0.8 }}>Duration</span>
-                      <span>{formatDuration(b?.duration_minutes)}</span>
                     </div>
                     <div className="d-flex justify-content-between">
                       <span style={{ opacity: 0.8 }}>Status</span>
