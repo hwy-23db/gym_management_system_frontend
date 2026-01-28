@@ -120,6 +120,7 @@ export default function AdminTrainerBookings() {
   // filters
   const [filterPaid, setFilterPaid] = useState("all");     // all | paid | unpaid
   const [filterStatus, setFilterStatus] = useState("all"); // all | pending | active | on-hold | completed
+  const [searchTerm, setSearchTerm] = useState("");
   // modal
   const [showModal, setShowModal] = useState(false);
 
