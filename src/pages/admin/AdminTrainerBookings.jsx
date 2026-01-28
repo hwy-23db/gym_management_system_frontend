@@ -563,8 +563,8 @@ export default function AdminTrainerBookings() {
               <th>Trainer</th>
               <th>Trainer Phone</th>
               <th>Paid Time</th>
-              <th style={{ width: 110 }}>Sessions</th>
-              <th style={{ width: 110 }}>Months</th>
+              <th style={{ width: 100 }}>Sessions</th>
+              <th style={{ width: 100 }}>Months</th>
               <th style={{ width: 120 }}>Total</th>
               <th style={{ width: 120 }}>Status</th>
               <th style={{ width: 100 }}>Paid</th>
