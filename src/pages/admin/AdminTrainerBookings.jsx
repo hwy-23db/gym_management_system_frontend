@@ -119,6 +119,7 @@ export default function AdminTrainerBookings() {
   const [msg, setMsg] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   const [bookings, setBookings] = useState([]);
 
@@ -422,6 +423,7 @@ export default function AdminTrainerBookings() {
   const openDetails = (booking) => {
     setSelectedBooking(booking);
     setShowDetails(true);
+    setOpenMenuId(null);
   };
 
 
@@ -635,6 +637,26 @@ export default function AdminTrainerBookings() {
             align-items: center;
             gap: 0.5rem;
           }
+          .booking-menu {
+            position: relative;
+          }
+
+          .booking-menu-panel {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            z-index: 5;
+            min-width: 160px;
+            padding: 0.5rem;
+            background: #1f2327;
+            border: 1px solid #343a40;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+          }
+          .booking-menu-panel button {
+            width: 100%;
+            text-align: left;
+          }
         `}
       </style>
       <div className="d-flex align-items-center justify-content-between mb-3">
@@ -721,9 +743,8 @@ export default function AdminTrainerBookings() {
               <th style={{ width: 150 }}>User Name</th>
               <th>User Phone</th>
               <th style={{ width: 150 }}>Trainer Name</th>
-              <th>Trainer Phone</th>
-              <th>Paid Time</th>
-              <th style={{ width: 120 }}>Total</th>
+              <th style={{ width: 150 }}>Trainer Phone</th>
+              <th style={{ width: 140 }}>Package Type</th>
               <th style={{ width: 120 }}>Status</th>
               <th style={{ width: 100 }}>Paid</th>
               <th style={{ width: 220 }}>Actions</th>
@@ -733,7 +754,7 @@ export default function AdminTrainerBookings() {
           <tbody>
             {filteredBookings.length === 0 ? (
               <tr>
-                <td colSpan="10" className="text-center text-muted py-4">
+                <td colSpan="9" className="text-center text-muted py-4">
                   {loading ? "Loading..." : "No bookings found."}
                 </td>
               </tr>
@@ -756,22 +777,34 @@ export default function AdminTrainerBookings() {
                     <td>{b.trainer_name || "-"}</td>
                     <td>{b.trainer_phone || "-"}</td>
 
-                    <td>{b.paid_at ? formatDateTimeVideoStyle(b.paid_at) : "-"}</td>
-                    <td>{moneyMMK(b.total_price)}</td>
+                    <td>{b.package_type || b?.trainer_package?.package_type || b?.trainer_package?.name || "-"}</td>
                     <td>{statusBadge(b.status)}</td>
                     <td>{paidBadge(b.paid_status)}</td>
 
                     <td>
                       <div className="booking-actions">
-                        <button
-                          className="btn btn-sm btn-outline-light icon-btn"
-                          type="button"
-                          onClick={() => openDetails(b)}
-                          title="Booking details"
-                        >
-                          <i className="bi bi-three-dots-vertical"></i>
-                        </button>
-                                             {isActive ? (
+                       <div className="booking-menu">
+                          <button
+                            className="btn btn-sm btn-outline-light icon-btn"
+                            type="button"
+                            onClick={() => setOpenMenuId((prev) => (prev === b.id ? null : b.id))}
+                            title="Booking actions"
+                          >
+                            <i className="bi bi-three-dots-vertical"></i>
+                          </button>
+                          {openMenuId === b.id && (
+                            <div className="booking-menu-panel">
+                              <button
+                                className="btn btn-sm btn-outline-light"
+                                type="button"
+                                onClick={() => openDetails(b)}
+                              >
+                                View details
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {isActive ? (
                           <button
                             className="btn btn-sm btn-outline-warning"
                             disabled={isCompleted || busyKey === `hold-${b.id}`}
@@ -851,6 +884,40 @@ export default function AdminTrainerBookings() {
                   return (
                     <div className="row g-3">
                       <div className="col-12">
+                        <div className="fw-semibold">Booking Summary</div>
+                        <div className="row g-2 mt-1">
+                          <div className="col-12 col-md-4">
+                            <div className="admin-muted">ID</div>
+                            <div>{selectedBooking?.id ?? "-"}</div>
+                          </div>
+                          <div className="col-12 col-md-4">
+                            <div className="admin-muted">User Name</div>
+                            <div>{selectedBooking?.member_name ?? "-"}</div>
+                          </div>
+                          <div className="col-12 col-md-4">
+                            <div className="admin-muted">User Phone</div>
+                            <div>{selectedBooking?.member_phone ?? "-"}</div>
+                          </div>
+                          <div className="col-12 col-md-4">
+                            <div className="admin-muted">Trainer Name</div>
+                            <div>{selectedBooking?.trainer_name ?? "-"}</div>
+                          </div>
+                          <div className="col-12 col-md-4">
+                            <div className="admin-muted">Trainer Phone</div>
+                            <div>{selectedBooking?.trainer_phone ?? "-"}</div>
+                          </div>
+                          <div className="col-12 col-md-4">
+                            <div className="admin-muted">Package Type</div>
+                            <div>
+                              {selectedBooking?.package_type ||
+                                selectedBooking?.trainer_package?.package_type ||
+                                selectedBooking?.trainer_package?.name ||
+                                "-"}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-12">
                         <div className="fw-semibold">Sessions</div>
                         <div className="session-adjust mt-1">
                           <button
@@ -901,6 +968,12 @@ export default function AdminTrainerBookings() {
                       <div className="col-12">
                         <div className="fw-semibold">Status</div>
                         <div>{statusBadge(selectedBooking.status)}</div>
+                      </div>
+                      <div className="col-12">
+                        <div className="admin-muted">
+                          When a booking is put on hold, the end date should extend by the hold duration once it
+                          is re-activated.
+                        </div>
                       </div>
                     </div>
                   );
