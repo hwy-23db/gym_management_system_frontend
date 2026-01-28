@@ -568,7 +568,7 @@ export default function AdminTrainerBookings() {
               <th style={{ width: 120 }}>Total</th>
               <th style={{ width: 120 }}>Status</th>
               <th style={{ width: 100 }}>Paid</th>
-              <th style={{ width: 180 }}>Actions</th>
+              <th style={{ width: 200 }}>Actions</th>
             </tr>
           </thead>
 
