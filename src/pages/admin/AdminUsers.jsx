@@ -69,6 +69,7 @@ export default function AdminUsers() {
 
   const [createForm, setCreateForm] = useState({ ...emptyCreate });
   const [editForm, setEditForm] = useState({ ...emptyEdit });
+  const [editOriginal, setEditOriginal] = useState({ ...emptyEdit });
 
   const handleCreateUserIdChange = (value) => {
     const sanitized = value.replace(/\D/g, "").slice(0, 5);
@@ -167,7 +168,7 @@ export default function AdminUsers() {
   const openEdit = (u) => {
     setMsg(null);
     const recordId = getUserRecordId(u);
-    setEditForm({
+    const next = {
       id: recordId,
       user_id: u?.user_id ?? "",
       name: u?.name || "",
@@ -176,7 +177,9 @@ export default function AdminUsers() {
       role: (u?.role || "user").toLowerCase(),
       password: "",
       password_confirmation: "",
-    });
+     };
+    setEditForm(next);
+    setEditOriginal(next);
     setShowEdit(true);
   };
 
@@ -195,25 +198,42 @@ export default function AdminUsers() {
         setSavingEdit(false);
         return;
       }
-       if (
-        editForm.password &&
-        editForm.password !== editForm.password_confirmation
-      ) {
+      const trimmedPassword = editForm.password.trim();
+      const trimmedConfirmation = editForm.password_confirmation.trim();
+      if (!trimmedPassword && trimmedConfirmation) {
+        setMsg({ type: "danger", text: "Please enter a new password to confirm." });
+        setSavingEdit(false);
+        return;
+      }
+      if (trimmedPassword && trimmedPassword !== trimmedConfirmation) {
         setMsg({ type: "danger", text: "Passwords do not match." });
         setSavingEdit(false);
         return;
       }
 
-      const payload = {
-        name: editForm.name,
-        email: editForm.email,
-        phone: editForm.phone,
-        role: editForm.role, // keep as user/trainer
-     };
+      const payload = {};
+      const trimmedName = editForm.name.trim();
+      const trimmedEmail = editForm.email.trim();
+      const trimmedPhone = editForm.phone.trim();
+      const originalName = editOriginal.name.trim();
+      const originalEmail = editOriginal.email.trim();
+      const originalPhone = editOriginal.phone.trim();
+      const originalRole = editOriginal.role.trim();
 
-      if (editForm.password) {
-        payload.password = editForm.password;
-        payload.password_confirmation = editForm.password_confirmation;
+      if (trimmedName !== originalName) payload.name = trimmedName;
+      if (trimmedEmail !== originalEmail) payload.email = trimmedEmail;
+      if (trimmedPhone !== originalPhone) payload.phone = trimmedPhone;
+      if (editForm.role !== originalRole) payload.role = editForm.role;
+
+      if (trimmedPassword) {
+        payload.password = trimmedPassword;
+        payload.password_confirmation = trimmedConfirmation;
+      }
+
+      if (Object.keys(payload).length === 0) {
+        setMsg({ type: "danger", text: "No changes detected." });
+        setSavingEdit(false);
+        return;
       }
 
       // ⚠️ This route does NOT exist yet in your API. Add backend in section (2).
@@ -588,6 +608,7 @@ export default function AdminUsers() {
                     <input
                       type="password"
                       className="form-control"
+                      placeholder="Leave blank to keep current password"
                       value={editForm.password}
                       onChange={(e) =>
                         setEditForm({ ...editForm, password: e.target.value })
@@ -602,6 +623,7 @@ export default function AdminUsers() {
                     <input
                       type="password"
                       className="form-control"
+                      placeholder="Leave blank to keep current password"
                       value={editForm.password_confirmation}
                       onChange={(e) =>
                         setEditForm({

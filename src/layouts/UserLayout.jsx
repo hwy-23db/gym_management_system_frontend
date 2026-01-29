@@ -4,6 +4,7 @@ import {
   FiHome,
   FiCheckSquare,
   FiRepeat,
+  FiBell,
   FiCalendar,
   FiMessageCircle,
   FiSettings,
@@ -97,6 +98,15 @@ export default function UserLayout() {
           <FiMessageCircle className="user-nav-icon" />
           <span className="user-nav-label">Messages</span>
         </NavLink>
+
+         <NavLink
+          to="/user/notifications"
+          className={({ isActive }) => "user-nav-item" + (isActive ? " active" : "")}
+        >
+          <FiBell className="user-nav-icon" />
+          <span className="user-nav-label">Alerts</span>
+        </NavLink>
+
 
         <NavLink
           to="/user/settings"

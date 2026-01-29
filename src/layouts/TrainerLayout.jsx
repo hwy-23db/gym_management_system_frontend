@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   FiHome,
   FiLogIn,
+  FiBell,
   FiMessageCircle,
   FiCalendar,
   FiSettings,
@@ -88,6 +89,15 @@ export default function TrainerLayout() {
           <FiCalendar className="nav-icon" />
           <span className="nav-label">Bookings</span>
         </NavLink>
+
+         <NavLink
+          to="/trainer/notifications"
+          className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
+        >
+          <FiBell className="nav-icon" />
+          <span className="nav-label">Alerts</span>
+        </NavLink>
+
 
         <NavLink
           to="/trainer/settings"
