@@ -612,10 +612,7 @@ export default function AdminUsers() {
                         })
                       }
                     />
-                  </div>
-
-
-                  
+                  </div> 
                 </div>
 
                 <div className="modal-footer">
@@ -633,3 +630,5 @@ export default function AdminUsers() {
     </div>
   );
 }
+
+
