@@ -43,8 +43,7 @@ function getUserRecordId(user) {
     return directId;
   }
   if (user?.user_id !== null && user?.user_id !== undefined) {
-    const parsed = Number(user.user_id);
-    return Number.isNaN(parsed) ? user.user_id : parsed;
+    return String(user.user_id);
   }
   return null;
 }
@@ -380,9 +379,9 @@ export default function AdminUsers() {
               </tr>
             ) : (
               pageItems.map((u) => {
-                const systemId = u?.id ?? null;
+                const recordId = getUserRecordId(u);
                 const userId = u?.user_id ?? "-";
-                const rowKey = systemId ?? userId ?? Math.random();
+                const rowKey = recordId ?? userId ?? Math.random();
                 const isDeleted = !!u?.deleted_at;
 
                 return (
@@ -428,7 +427,7 @@ export default function AdminUsers() {
         {isDeleted ? (
       <button
         className="btn btn-sm btn-outline-warning"
-        onClick={() => restore(systemId ?? userId)}
+        onClick={() => restore(recordId ?? userId)}
         style={{ minWidth: 70 }}
       >
         Restore
@@ -436,7 +435,7 @@ export default function AdminUsers() {
     ) : (
       <button
         className="btn btn-sm btn-outline-danger"
-        onClick={() => destroy(systemId ?? userId)}
+        onClick={() => destroy(recordId ?? userId)}
         style={{ minWidth: 70 }}
       >
         Delete
@@ -652,5 +651,4 @@ export default function AdminUsers() {
     </div>
   );
 }
-
 
