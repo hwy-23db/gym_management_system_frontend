@@ -54,6 +54,22 @@ const normalizeRecord = (record) => ({
   userId: record?.user_id || record?.user?.id || record?.member_id,
 });
 
+const getRecordUserKey = (record, fallback = "-") =>
+  record?.user_id ||
+  record?.userId ||
+  record?.user?.id ||
+  record?.member_id ||
+  `${record?.name || record?.user_name || record?.username || fallback}-${record?.role || record?.user_role || fallback}`;
+
+const getRecordDayKey = (value) => {
+  const d = parseBackendDateTime(value);
+  if (!d) return null;
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 
 const n = (v) => {
   const num = Number(v);
@@ -468,6 +484,29 @@ export default function AdminAttendance() {
     });
   }, [records, recordRoleFilter, recordTypeFilter]);
 
+  const recordDayCounts = useMemo(() => {
+    const datesByUser = new Map();
+    const list = Array.isArray(records) ? records : [];
+
+    list.forEach((record) => {
+      const name = record?.name || record?.user_name || record?.username || "-";
+      const role = record?.role || record?.user_role || "-";
+      const key = getRecordUserKey({ ...record, name, role }, `${name}-${role}`);
+      const scannedAt = record?.scanned_at || record?.created_at || record?.time || record?.timestamp;
+      const dayKey = getRecordDayKey(scannedAt);
+      if (!key || !dayKey) return;
+
+      if (!datesByUser.has(key)) {
+        datesByUser.set(key, new Set());
+      }
+      datesByUser.get(key).add(dayKey);
+    });
+
+    const counts = new Map();
+    datesByUser.forEach((set, key) => counts.set(key, set.size));
+    return counts;
+  }, [records]);
+
   // ---------------- render ----------------
 
   return (
@@ -793,12 +832,13 @@ export default function AdminAttendance() {
                   <th>Role</th>
                   <th>Scan Type</th>
                   <th>Scan Time</th>
+                  <th>Total Days</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRecords.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="text-center text-muted py-4">
+                    <td colSpan="5" className="text-center text-muted py-4">
                       {recordsLoading ? "Loading..." : "No attendance records found."}
                     </td>
                   </tr>
@@ -808,6 +848,8 @@ export default function AdminAttendance() {
                     const role = r.role || r.user_role || "-";
                     const type = normalizeRecordType(r);
                     const scannedAt = r.scanned_at || r.created_at || r.time || r.timestamp;
+                    const recordKey = getRecordUserKey({ ...r, name, role }, `${name}-${role}`);
+                    const totalDays = recordDayCounts.get(recordKey) ?? 0;
 
                     return (
                       <tr key={r.id || `${idx}-${name}-${scannedAt}`}>
@@ -823,6 +865,7 @@ export default function AdminAttendance() {
                           )}
                         </td>
                         <td>{formatDateTimeVideoStyle(scannedAt)}</td>
+                        <td>{totalDays}</td>
                       </tr>
                     );
                   })
