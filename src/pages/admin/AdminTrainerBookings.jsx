@@ -22,6 +22,17 @@ function pad2(n) {
   return String(n).padStart(2, "0");
 }
 
+function pickFirstValue(source, keys) {
+  for (const key of keys) {
+    const value = source?.[key];
+    if (value !== null && value !== undefined && value !== "") {
+      return value;
+    }
+  }
+  return null;
+}
+
+
 function formatDateTimeVideoStyle(s) {
   // "2026-01-11 10:30 AM"
   const d = parseBackendDateTime(s);
@@ -59,6 +70,14 @@ function normalizeBookingStatus(value) {
   return s || "pending";
 }
 
+function getBookingPackageType(booking) {
+  return String(
+    booking?.package_type ||
+      booking?.trainer_package?.package_type ||
+      booking?.trainer_package?.type ||
+      ""
+  ).toLowerCase();
+}
 
 function getSessionProgress(booking) {
   const total = toNumber(booking?.sessions_count ?? booking?.session_count ?? booking?.sessions);
@@ -871,16 +890,40 @@ export default function AdminTrainerBookings() {
                 {(() => {
                   const { total } = getSessionProgress(selectedBooking);
                   const monthCount = getMonthCount(selectedBooking);
-                  const sessionStart = selectedBooking?.start_date ? formatDateTimeVideoStyle(selectedBooking.start_date) : "-";
-                  const sessionEnd = selectedBooking?.end_date ? formatDateTimeVideoStyle(selectedBooking.end_date) : "-";
-                  const monthStart = selectedBooking?.start_date ? formatDateTimeVideoStyle(selectedBooking.start_date) : "-";
-                  const monthEndDate =
-                    selectedBooking?.start_date && monthCount !== null
-                      ? addMonthsToDate(new Date(`${selectedBooking.start_date}T00:00:00`), monthCount)
+                  const packageTypeValue = getBookingPackageType(selectedBooking);
+                  const sessionStartRaw = pickFirstValue(selectedBooking, [
+                    "sessions_start_date",
+                    "session_start_date",
+                    "start_date",
+                    "starts_at",
+                  ]);
+                  const sessionEndRaw = pickFirstValue(selectedBooking, [
+                    "sessions_end_date",
+                    "session_end_date",
+                    "end_date",
+                    "ends_at",
+                  ]);
+                  const monthStartRaw = pickFirstValue(selectedBooking, [
+                    "month_start_date",
+                    "monthly_start_date",
+                    "start_date",
+                  ]);
+                  const monthEndRaw = pickFirstValue(selectedBooking, [
+                    "month_end_date",
+                    "monthly_end_date",
+                    "end_date",
+                  ]);
+                  const sessionStart = sessionStartRaw ? formatDateTimeVideoStyle(sessionStartRaw) : "-";
+                  const sessionEnd = sessionEndRaw ? formatDateTimeVideoStyle(sessionEndRaw) : "-";
+                  const monthStart = monthStartRaw ? formatDateTimeVideoStyle(monthStartRaw) : "-";
+                  const monthEndFallbackDate =
+                    monthStartRaw && monthCount !== null
+                      ? addMonthsToDate(new Date(`${monthStartRaw}T00:00:00`), monthCount)
                       : null;
-                  const monthEnd = monthEndDate
-                    ? formatDateTimeVideoStyle(formatDateInputValue(monthEndDate))
-                    : "-";
+                  const monthEndDate = monthEndRaw
+                    ? parseBackendDateTime(monthEndRaw)
+                    : monthEndFallbackDate;
+                  const monthEnd = monthEndDate ? formatDateTimeVideoStyle(monthEndDate.toISOString()) : "-";
                   return (
                     <div className="row g-3">
                       <div className="col-12">
@@ -945,24 +988,24 @@ export default function AdminTrainerBookings() {
 
                       <div className="col-12 col-md-6">
                         <div className="fw-semibold">Session Start Date</div>
-                        <div>{sessionStart}</div>
+                        <div>{packageTypeValue === "monthly" ? "-" : sessionStart}</div>
                       </div>
                       <div className="col-12 col-md-6">
                         <div className="fw-semibold">Session End Date</div>
-                        <div>{sessionEnd}</div>
+                        <div>{packageTypeValue === "monthly" ? "-" : sessionEnd}</div>
                       </div>
 
                       <div className="col-12 col-md-4">
                         <div className="fw-semibold">Month Count</div>
-                        <div>{monthCount ?? "-"}</div>
+                          <div>{packageTypeValue === "monthly" ? monthCount ?? "-" : "-"}</div>
                       </div>
                       <div className="col-12 col-md-4">
                         <div className="fw-semibold">Month Start Date</div>
-                        <div>{monthStart}</div>
+                        <div>{packageTypeValue === "monthly" ? monthStart : "-"}</div>
                       </div>
                       <div className="col-12 col-md-4">
                         <div className="fw-semibold">Month End Date</div>
-                        <div>{monthEnd}</div>
+                        <div>{packageTypeValue === "monthly" ? monthEnd : "-"}</div>
                       </div>
 
                       <div className="col-12">
