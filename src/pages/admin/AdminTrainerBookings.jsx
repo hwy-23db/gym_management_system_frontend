@@ -899,7 +899,7 @@ export default function AdminTrainerBookings() {
               </div>
               <div className="modal-body">
                 {(() => {
-                  const { total } = getSessionProgress(selectedBooking);
+                  const { total, remaining } = getSessionProgress(selectedBooking);
                   const monthCount = getMonthCount(selectedBooking);
                   const packageTypeValue = getBookingPackageType(selectedBooking);
                   const sessionStartRaw = pickFirstValue(selectedBooking, [
@@ -982,7 +982,7 @@ export default function AdminTrainerBookings() {
                           >
                           <i className="bi bi-dash-lg"></i>
                           </button>
-                          <span className="fw-bold">{total ?? "-"}</span>
+                          <span className="fw-bold">{remaining ?? total ?? "-"}</span>
                           <button
                             className="btn btn-sm btn-outline-light icon-btn"
                             disabled={busyKey === `sessions-${selectedBooking.id}`}
@@ -993,7 +993,8 @@ export default function AdminTrainerBookings() {
                           </button>
                         </div>
                         <div className="admin-muted mt-1">
-                          Default flow: 10 sessions/month. Adjust here when you need to extend sessions.
+                          Total sessions: {total ?? "-"} · Default flow: 10 sessions/month. Adjust here when you need
+                          to extend sessions.
                         </div>
                       </div>
 
