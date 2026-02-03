@@ -204,7 +204,32 @@ export default function AdminBoxingBookings() {
  const packageKey = (pkg) =>
     String(pkg?.id ?? pkg?.package_id ?? pkg?.packageId ?? pkg?.type ?? pkg?.name ?? "");
 
-  const normalizePackageType = (value) => String(value || "").toLowerCase();
+  const normalizePackageType = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "session" || normalized === "sessions") return "personal";
+    if (normalized === "month" || normalized === "months") return "monthly";
+    return normalized;
+  };
+
+  const inferPackageGroup = (pkg) => {
+    const normalized = normalizePackageType(
+      pkg?.package_type ?? pkg?.type ?? pkg?.packageType ?? pkg?.category
+    );
+    if (["personal", "monthly", "duo"].includes(normalized)) {
+      return normalized;
+    }
+    const durationMonths = toNumber(
+      pkg?.duration_months ?? pkg?.months_count ?? pkg?.month_count
+    );
+    if (durationMonths !== null && durationMonths > 0) return "monthly";
+    const sessions = toNumber(pkg?.sessions_count ?? pkg?.session_count);
+    if (sessions !== null && sessions > 0) return "personal";
+    const name = normalizePackageType(pkg?.name ?? pkg?.title);
+    if (name.includes("duo")) return "duo";
+    if (name.includes("month")) return "monthly";
+    if (name.includes("session") || name.includes("personal")) return "personal";
+    return "";
+  };
 
   const findSelectedPackage = (list = boxingPackages, selected = packageType) =>
     list.find((pkg) => packageKey(pkg) === selected);
@@ -542,15 +567,9 @@ export default function AdminBoxingBookings() {
       return { personal: [], monthly: [], duo: [] };
     }
     return {
-      personal: boxingPackages.filter(
-        (pkg) => normalizePackageType(pkg?.package_type ?? pkg?.type) === "personal"
-      ),
-      monthly: boxingPackages.filter(
-        (pkg) => normalizePackageType(pkg?.package_type ?? pkg?.type) === "monthly"
-      ),
-      duo: boxingPackages.filter(
-        (pkg) => normalizePackageType(pkg?.package_type ?? pkg?.type) === "duo"
-      ),
+      personal: boxingPackages.filter((pkg) => inferPackageGroup(pkg) === "personal"),
+      monthly: boxingPackages.filter((pkg) => inferPackageGroup(pkg) === "monthly"),
+      duo: boxingPackages.filter((pkg) => inferPackageGroup(pkg) === "duo"),
     };
   }, [boxingPackages]);
 
