@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import axiosClient from "../../api/axiosClient";
+import { scanMemberCardAttendance } from "../../api/attendanceApi";
+import { isCardNotRegisteredError, normalizeCardId } from "../../utils/rfid";
 
 function parseBackendDateTime(s) {
   if (!s) return null;
@@ -94,6 +96,28 @@ const deepPick = (obj, paths, fallback = 0) => {
 
 const sumArr = (arr = []) => arr.reduce((a, b) => a + n(b), 0);
 
+const normalizeScanStatus = (record) => {
+  const type = normalizeRecordType(record);
+  if (type === "check_in") return "Check-in";
+  if (type === "check_out") return "Check-out";
+  if (type) return type.replace("_", " ");
+  return "—";
+};
+
+const extractScanPayload = (payload) => {
+  if (!payload) return { user: null, attendance: null, message: null };
+  const user = payload.user ?? payload.member ?? payload.data?.user ?? payload.data?.member ?? null;
+  const attendance =
+    payload.attendance ??
+    payload.record ??
+    payload.scan ??
+    payload.data?.attendance ??
+    payload.data?.record ??
+    (payload.data && typeof payload.data === "object" ? payload.data : null);
+  return { user, attendance, message: payload.message ?? payload.data?.message ?? null };
+};
+
+
 const normalizeReportPayload = (resData) => {
   let payload =
     resData?.data ??
@@ -179,6 +203,8 @@ export default function AdminAttendance() {
   const [activeTab, setActiveTab] = useState("qr"); // records | qr | checked
   const [msg, setMsg] = useState(null);
   const [busyKey, setBusyKey] = useState(null);
+  const scanInputRef = useRef(null);
+  const scanTimeoutRef = useRef(null);
 
   // Records
   const [recordsLoading, setRecordsLoading] = useState(false);
@@ -198,6 +224,12 @@ export default function AdminAttendance() {
   const [overrideUsers, setOverrideUsers] = useState([]);
   const [overrideQrType, setOverrideQrType] = useState("user"); // user | trainer
   const [overrideUserId, setOverrideUserId] = useState("");
+
+  // Member card scan panel
+    const [scanValue, setScanValue] = useState("");
+    const [scanLoading, setScanLoading] = useState(false);
+    const [scanError, setScanError] = useState(null);
+    const [scanResult, setScanResult] = useState(null);
 
   // Checked-in
   const [checkedLoading, setCheckedLoading] = useState(false);
@@ -433,6 +465,20 @@ export default function AdminAttendance() {
   }, []);
 
   useEffect(() => {
+    if (!scanResult && scanInputRef.current) {
+      scanInputRef.current.focus();
+    }
+  }, [scanResult]);
+
+  useEffect(() => {
+    return () => {
+      if (scanTimeoutRef.current) {
+        window.clearTimeout(scanTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (activeTab === "records") loadRecords(true);
     if (activeTab === "checked") {
       loadCheckedIn(true);
@@ -507,6 +553,71 @@ export default function AdminAttendance() {
     return counts;
   }, [records]);
 
+  const handleScanSubmit = async (rawValue) => {
+    if (scanLoading || scanResult) return;
+    const cardId = normalizeCardId(rawValue);
+    if (!cardId) {
+      setScanError("Please scan a valid member card.");
+      return;
+    }
+
+    setScanLoading(true);
+    setScanError(null);
+
+    try {
+      const res = await scanMemberCardAttendance(cardId);
+      const payload = res?.data ?? {};
+      const { user, attendance, message } = extractScanPayload(payload);
+
+      setScanResult({
+        user,
+        attendance,
+        message: message || "Scan recorded successfully.",
+      });
+      setScanValue(cardId);
+    } catch (e) {
+      const message = e?.response?.data?.message || "Unable to scan member card.";
+      if (isCardNotRegisteredError(message)) {
+        setScanError("This card is not registered. Please register the member card first.");
+      } else {
+        setScanError(message);
+      }
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
+  const handleScanChange = (event) => {
+    const value = event.target.value;
+    setScanValue(value);
+    setScanError(null);
+
+    if (scanTimeoutRef.current) {
+      window.clearTimeout(scanTimeoutRef.current);
+    }
+
+    scanTimeoutRef.current = window.setTimeout(() => {
+      handleScanSubmit(value);
+    }, 250);
+  };
+
+  const handleScanKeyDown = (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    handleScanSubmit(scanValue);
+  };
+
+  const resetScanPanel = () => {
+    setScanValue("");
+    setScanResult(null);
+    setScanError(null);
+    setScanLoading(false);
+    if (scanInputRef.current) {
+      scanInputRef.current.focus();
+    }
+  };
+
+
   // ---------------- render ----------------
 
   return (
@@ -519,6 +630,105 @@ export default function AdminAttendance() {
           Track trainer attendance, scan QR codes, and monitor active gym users.
         </div>
       </div>
+
+            {!scanResult && (
+        <div className="mb-4" style={{ ...cardGlass, borderRadius: 16, padding: 18 }}>
+          <div className="d-flex align-items-start justify-content-between mb-2">
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "rgba(255,255,255,0.95)" }}>
+                Member Card Scan
+              </div>
+              <div style={{ fontSize: 13, ...mutedText }}>
+                Scan a member card to record attendance automatically.
+              </div>
+            </div>
+            <span className={`badge ${scanLoading ? "bg-warning text-dark" : "bg-success"}`}>
+              {scanLoading ? "Scanning..." : "Ready"}
+            </span>
+          </div>
+
+          <input
+            ref={scanInputRef}
+            type="text"
+            className="form-control"
+            value={scanValue}
+            onChange={handleScanChange}
+            onKeyDown={handleScanKeyDown}
+            placeholder="Scan member card ID"
+            autoComplete="off"
+            disabled={scanLoading}
+          />
+
+          {scanError && (
+            <div className="alert alert-danger mt-3 mb-0" role="alert">
+              {scanError}
+            </div>
+          )}
+        </div>
+      )}
+
+      {scanResult && (
+        <div className="mb-4" style={{ ...cardGlass, borderRadius: 16, padding: 18 }}>
+          <div className="d-flex align-items-start justify-content-between">
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "rgba(255,255,255,0.95)" }}>
+                Latest Scan Result
+              </div>
+              <div style={{ fontSize: 13, ...mutedText }}>Scan panel locked to prevent duplicates.</div>
+            </div>
+            <span className="badge bg-success">Success</span>
+          </div>
+
+          {scanResult.message && (
+            <div className="alert alert-success mt-3 mb-2" role="alert">
+              {scanResult.message}
+            </div>
+          )}
+
+          <div className="mt-3">
+            <div className="d-flex justify-content-between mb-2" style={bodyText}>
+              <span>Member Name</span>
+              <strong>
+                {scanResult.user?.name ||
+                  scanResult.user?.full_name ||
+                  [scanResult.user?.first_name, scanResult.user?.last_name].filter(Boolean).join(" ") ||
+                  "—"}
+              </strong>
+            </div>
+            <div className="d-flex justify-content-between mb-2" style={bodyText}>
+              <span>Member ID</span>
+              <strong>
+                {scanResult.user?.member_id ||
+                  scanResult.user?.memberId ||
+                  scanResult.user?.id ||
+                  scanResult.attendance?.member_id ||
+                  scanResult.attendance?.user_id ||
+                  "—"}
+              </strong>
+            </div>
+            <div className="d-flex justify-content-between mb-2" style={bodyText}>
+              <span>Status</span>
+              <strong>{normalizeScanStatus(scanResult.attendance)}</strong>
+            </div>
+            <div className="d-flex justify-content-between" style={bodyText}>
+              <span>Time</span>
+              <strong>
+                {formatDateTimeVideoStyle(
+                  scanResult.attendance?.scanned_at ||
+                    scanResult.attendance?.created_at ||
+                    scanResult.attendance?.timestamp ||
+                    scanResult.attendance?.time
+                )}
+              </strong>
+            </div>
+          </div>
+
+          <button className="btn btn-outline-light mt-3" onClick={resetScanPanel}>
+            Reset Scan Panel
+          </button>
+        </div>
+      )}
+
 
       {msg && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
 
