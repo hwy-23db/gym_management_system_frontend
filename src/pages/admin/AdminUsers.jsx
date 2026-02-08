@@ -338,10 +338,16 @@ export default function AdminUsers() {
       <div className="row g-2 align-items-center mb-3">
         <div className="col-md-6">
           <input
+            type="search"
             className="form-control admin-search"
             placeholder="Search name / email / phone / role"
             value={query}
             autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            data-lpignore="true"
+            data-form-type="other"
             name="admin-user-search"
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -612,19 +618,19 @@ export default function AdminUsers() {
                   </div>
                   <div className="mb-2">
                     <label className="form-label fw-bold">Name</label>
-                    <input className="form-control" value={editForm.name}
+                    <input className="form-control" autoComplete="off" value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
                   </div>
 
                   <div className="mb-2">
                     <label className="form-label fw-bold">Email</label>
-                    <input className="form-control" value={editForm.email}
+                    <input className="form-control" autoComplete="off" value={editForm.email}
                       onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
                   </div>
 
                   <div className="mb-2">
                     <label className="form-label fw-bold">Phone</label>
-                    <input className="form-control" value={editForm.phone}
+                    <input className="form-control" autoComplete="off" value={editForm.phone}
                       onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
                   </div>
 
