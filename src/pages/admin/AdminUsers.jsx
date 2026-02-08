@@ -342,7 +342,7 @@ export default function AdminUsers() {
             className="form-control admin-search"
             placeholder="Search name / email / phone / role"
             value={query}
-            autoComplete="off"
+            autoComplete="new-password"
             autoCorrect="off"
             autoCapitalize="none"
             spellCheck={false}
