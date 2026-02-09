@@ -26,9 +26,31 @@ function resolveBlogTitle(notification) {
   );
 }
 
-function shouldShowAlertDot(notification) {
+function hasBlogIndicator(notification) {
   const type = getNotificationType(notification);
-  return type.includes("blog") || type.includes("message") || Boolean(resolveBlogTitle(notification));
+  return (
+    type.includes("blog") ||
+    Boolean(resolveBlogTitle(notification)) ||
+    Boolean(notification?.data?.blog_id || notification?.data?.blog?.id || notification?.blog_id)
+  );
+}
+
+function hasMessageIndicator(notification) {
+  const type = getNotificationType(notification);
+  return (
+    type.includes("message") ||
+    Boolean(
+      notification?.data?.message_id ||
+        notification?.data?.conversation_id ||
+        notification?.data?.sender_id ||
+        notification?.data?.message ||
+        notification?.message
+    )
+  );
+}
+
+function shouldShowAlertDot(notification) {
+  return hasBlogIndicator(notification) || hasMessageIndicator(notification);
 }
 
 function formatNotificationBody(notification) {
@@ -148,8 +170,15 @@ export default function Notifications() {
                   <div className="fw-semibold d-flex align-items-center gap-2">
                     {showAlertDot && (
                       <span
-                        className="d-inline-block"
-                        style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#dc3545" }}
+                        className="d-inline-flex flex-shrink-0"
+                        aria-hidden="true"
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          backgroundColor: "#dc3545",
+                          boxShadow: "0 0 0 2px rgba(220, 53, 69, 0.25)",
+                        }}
                       ></span>
                     )}
                     <span>{body}</span>
