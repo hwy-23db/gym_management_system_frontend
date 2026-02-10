@@ -619,12 +619,13 @@ export default function AdminUsers() {
                   <div className="mb-2">
                     <label className="form-label fw-bold">Role</label>
                     <select
-                      className="form-select bg-dark"
+                      className="form-select bg-dark text-white"
+                      style={{ backgroundColor: "#212529", color: "#fff" }}
                       value={createForm.role}
                       onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
                     >
-                      <option value="user" className="fw-bold text-white">User</option>
-                      <option value="trainer" className="fw-bold text-white">Trainer</option>
+                     <option value="user" className="fw-bold text-white" style={{ color: "#fff", backgroundColor: "#212529" }}>User</option>
+                      <option value="trainer" className="fw-bold text-white" style={{ color: "#fff", backgroundColor: "#212529" }}>Trainer</option>
                     </select>
                   </div>
 
@@ -714,12 +715,13 @@ export default function AdminUsers() {
                   <div>
                     <label className="form-label fw-bold">Role</label>
                     <select
-                      className="form-select bg-dark"
+                     className="form-select bg-dark text-white"
+                      style={{ backgroundColor: "#212529", color: "#fff" }}
                       value={editForm.role}
                       onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                     >
-                      <option value="user" className="fw-bold text-white">User</option>
-                      <option value="trainer" className="fw-bold text-white">Trainer</option>
+                      <option value="user" className="fw-bold text-white" style={{ color: "#fff", backgroundColor: "#212529" }}>User</option>
+                      <option value="trainer" className="fw-bold text-white" style={{ color: "#fff", backgroundColor: "#212529" }}>Trainer</option>
                     </select>
                   </div>
 
