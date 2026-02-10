@@ -42,8 +42,8 @@ function roleBadge(roleRaw) {
 }
 
 function getUserRecordId(user) {
-  // Prefer DB primary key id
-  const directId = user?.id ?? user?.user?.id ?? user?.member_id ?? null;
+  // History/record route must use users.id (primary key), not business user_id.
+  const directId = user?.id ?? user?.user?.id ?? null;
   if (directId !== null && directId !== undefined) return directId;
   return null;
 }
