@@ -43,8 +43,24 @@ function roleBadge(roleRaw) {
 
 function getUserRecordId(user) {
   // History/record route must use users.id (primary key), not business user_id.
-  const directId = user?.id ?? user?.user?.id ?? null;
-  if (directId !== null && directId !== undefined) return directId;
+  // Some endpoints return the PK under different shapes/aliases.
+  const candidates = [
+    user?.id,
+    user?.user?.id,
+    user?.users?.id,
+    user?.member?.id,
+    user?.profile?.id,
+    user?.users_id,
+    user?.user_record_id,
+    user?.record_id,
+    user?.member_id,
+  ];
+
+  for (const value of candidates) {
+    if (value === null || value === undefined || value === "") continue;
+    return value;
+  }
+
   return null;
 }
 
