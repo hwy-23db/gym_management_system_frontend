@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   ATTENDANCE_SCAN_CONTROL_STORAGE_KEY,
   getAttendanceScanControlStatus,
+  readAttendanceScanControlLocal,
 } from "../api/attendanceApi";
 
 /**
@@ -20,7 +21,14 @@ import {
  * }
  */
 export function useGlobalScanner() {
-  const [isScanningEnabled, setIsScanningEnabled] = useState(false);
+  // Initialize from localStorage immediately to avoid flicker
+  const getInitialState = () => {
+    const cached = readAttendanceScanControlLocal();
+    console.log("[useGlobalScanner] Initial localStorage value:", cached);
+    return !!cached?.isActive;
+  };
+
+  const [isScanningEnabled, setIsScanningEnabled] = useState(getInitialState);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -30,7 +38,9 @@ export function useGlobalScanner() {
       setIsScanningEnabled(!!result?.isActive);
       setError(null);
     } catch (e) {
-      setIsScanningEnabled(false);
+      // On error, read from localStorage as fallback
+      const cached = readAttendanceScanControlLocal();
+      setIsScanningEnabled(!!cached?.isActive);
       setError("Failed to load scanner status");
     }
   }, []);
@@ -41,11 +51,15 @@ export function useGlobalScanner() {
     const loadScanControl = async () => {
       try {
         const result = await getAttendanceScanControlStatus();
+        console.log("[useGlobalScanner] API result:", result);
         if (!alive) return;
         setIsScanningEnabled(!!result?.isActive);
       } catch {
         if (!alive) return;
-        setIsScanningEnabled(false);
+        // On API error, keep the localStorage value (don't default to false)
+        const cached = readAttendanceScanControlLocal();
+        console.log("[useGlobalScanner] API failed, using localStorage:", cached);
+        setIsScanningEnabled(!!cached?.isActive);
       } finally {
         if (alive) setIsLoading(false);
       }
@@ -53,12 +67,13 @@ export function useGlobalScanner() {
 
     loadScanControl();
 
-    // Poll every 10 seconds to sync with admin changes
-    const intervalId = window.setInterval(loadScanControl, 10000);
+    // Poll every 3 seconds to sync with admin changes (faster sync)
+    const intervalId = window.setInterval(loadScanControl, 3000);
 
     // Listen for storage events to sync across tabs
     const onStorage = (event) => {
       if (event.key !== ATTENDANCE_SCAN_CONTROL_STORAGE_KEY) return;
+      console.log("[useGlobalScanner] Storage event received:", event.newValue);
       try {
         const next = event.newValue ? JSON.parse(event.newValue) : null;
         setIsScanningEnabled(!!next?.isActive);

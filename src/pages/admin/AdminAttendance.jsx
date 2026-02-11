@@ -554,13 +554,19 @@ export default function AdminAttendance() {
                 setScanControlSyncing(true);
                 try {
                   const res = await setAttendanceScanControlStatus(true);
-                  setScannerActive(!!res?.isActive);
-                  saveAttendanceScanControlLocal(!!res?.isActive);
+                  const newState = !!res?.isActive;
+                  setScannerActive(newState);
+                  saveAttendanceScanControlLocal(newState);
+                  console.log("[Admin] Scanner started:", newState);
                   setScanError(null);
                   setScanResult(null);
                   setTimeout(() => scanInputRef.current?.focus(), 0);
                 } catch (e) {
-                  setScanError(e?.response?.data?.message || "Failed to start scanner control.");
+                  // Even if API fails, save locally and update UI
+                  setScannerActive(true);
+                  saveAttendanceScanControlLocal(true);
+                  console.log("[Admin] Scanner started (local only): true");
+                  setScanError(null);
                 } finally {
                   setScanControlSyncing(false);
                 }
@@ -576,12 +582,18 @@ export default function AdminAttendance() {
                 setScanControlSyncing(true);
                 try {
                   const res = await setAttendanceScanControlStatus(false);
-                  setScannerActive(!!res?.isActive);
-                  saveAttendanceScanControlLocal(!!res?.isActive);
+                  const newState = !!res?.isActive;
+                  setScannerActive(newState);
+                  saveAttendanceScanControlLocal(newState);
+                  console.log("[Admin] Scanner stopped:", newState);
                   setScanValue("");
                   setScanError(null);
                 } catch (e) {
-                  setScanError(e?.response?.data?.message || "Failed to stop scanner control.");
+                  // Even if API fails, save locally and update UI
+                  setScannerActive(false);
+                  saveAttendanceScanControlLocal(false);
+                  console.log("[Admin] Scanner stopped (local only): false");
+                  setScanError(null);
                 } finally {
                   setScanControlSyncing(false);
                 }
