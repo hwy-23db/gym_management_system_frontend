@@ -385,23 +385,6 @@ export default function TrainerScan() {
           <div style={{ opacity: 0.9 }}>
             Next action: <b>{nextAction === "check_in" ? "CHECK-IN" : "CHECK-OUT"}</b>
           </div>
-
-          <div className="d-flex gap-2">
-            <button
-              className="btn btn-sm btn-outline-light"
-              onClick={() => setScannerActive(true)}
-              disabled={scannerActive}
-            >
-              Start
-            </button>
-            <button
-              className="btn btn-sm btn-outline-light"
-              onClick={() => setScannerActive(false)}
-              disabled={!scannerActive}
-            >
-              Stop
-            </button>
-          </div>
         </div>
       </div>
 
