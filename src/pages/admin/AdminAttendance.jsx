@@ -192,6 +192,7 @@ export default function AdminAttendance() {
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState(null);
   const [scanResult, setScanResult] = useState(null);
+  const [scannerActive, setScannerActive] = useState(false);
 
   // Checked-in
   const [checkedLoading, setCheckedLoading] = useState(false);
@@ -389,7 +390,7 @@ export default function AdminAttendance() {
   }, [records]);
 
   const handleScanSubmit = async (rawValue) => {
-    if (scanLoading || scanResult) return;
+    if (!scannerActive || scanLoading || scanResult) return;
     const cardId = normalizeCardId(rawValue);
     if (!cardId) {
       setScanError("Please scan a valid member card.");
@@ -424,6 +425,7 @@ export default function AdminAttendance() {
   };
 
   const handleScanChange = (event) => {
+    if (!scannerActive) return;
     const value = event.target.value;
     setScanValue(value);
     setScanError(null);
@@ -475,12 +477,40 @@ export default function AdminAttendance() {
                 Member Card Scan
               </div>
               <div style={{ fontSize: 13, ...mutedText }}>
-                Scan a member card to record attendance automatically.
+                Admin can start/stop scanner control for member attendance.
               </div>
             </div>
             <span className={`badge ${scanLoading ? "bg-warning text-dark" : "bg-success"}`}>
-              {scanLoading ? "Scanning..." : "Ready"}
+              {scanLoading ? "Scanning..." : scannerActive ? "Scanner ON" : "Scanner OFF"}
             </span>
+          </div>
+
+          <div className="d-flex gap-2 mb-3">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-light"
+              onClick={() => {
+                setScannerActive(true);
+                setScanError(null);
+                setScanResult(null);
+                setTimeout(() => scanInputRef.current?.focus(), 0);
+              }}
+              disabled={scannerActive || scanLoading}
+            >
+              Start Scan
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-light"
+              onClick={() => {
+                setScannerActive(false);
+                setScanValue("");
+                setScanError(null);
+              }}
+              disabled={!scannerActive}
+            >
+              Stop Scan
+            </button>
           </div>
 
           <input
@@ -490,9 +520,9 @@ export default function AdminAttendance() {
             value={scanValue}
             onChange={handleScanChange}
             onKeyDown={handleScanKeyDown}
-            placeholder="Scan member card ID"
+            placeholder={scannerActive ? "Scan member card ID" : "Click Start Scan to enable reader"}
             autoComplete="off"
-            disabled={scanLoading}
+            disabled={!scannerActive || scanLoading}
           />
 
           {scanError && (
