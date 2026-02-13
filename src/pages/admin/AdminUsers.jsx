@@ -122,12 +122,25 @@ export default function AdminUsers() {
     try {
       const res = await axiosClient.get("/users");
       const list = normalizeList(res.data);
-
-      // ✅ Optional: debug duplicate keys (helps you confirm it’s fixed)
-      // const keys = list.map(getStableRowKey);
-      // const dup = keys.filter((k, i) => keys.indexOf(k) !== i);
-      // if (dup.length) console.warn("DUPLICATE ROW KEYS:", dup);
-
+  
+      // 🔍 DEBUG: Check if backend returns database 'id' field
+      console.log("[AdminUsers] Loaded users from API:", list);
+      if (list.length > 0) {
+        const sampleUser = list[0];
+        console.log("[AdminUsers] Sample user structure:", {
+          id: sampleUser?.id,
+          user_id: sampleUser?.user_id,
+          name: sampleUser?.name,
+          hasDbId: 'id' in sampleUser,
+          hasUserId: 'user_id' in sampleUser,
+        });
+          
+        if (!('id' in sampleUser)) {
+          console.error("❌ CRITICAL: Backend /users endpoint does NOT return 'id' field!");
+          console.error("❌ This will cause user history mismatch. Backend must return database primary key as 'id'.");
+        }
+      }
+  
       setUsers(list);
       setPage(1);
     } catch (e) {
