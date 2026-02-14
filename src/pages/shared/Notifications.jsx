@@ -108,6 +108,8 @@ export default function Notifications() {
       setNotifications((prev) =>
         prev.map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() }))
       );
+      // Notify layout to refresh badge
+      window.dispatchEvent(new Event("notifications-updated"));
     } catch (err) {
       setMsg(err?.response?.data?.message || "Failed to mark all as read.");
     }
@@ -123,6 +125,8 @@ export default function Notifications() {
           item?.id === notificationId ? { ...item, read_at: item.read_at || new Date().toISOString() } : item
         )
       );
+      // Notify layout to refresh badge
+      window.dispatchEvent(new Event("notifications-updated"));
     } catch (err) {
       setMsg(err?.response?.data?.message || "Failed to mark notification as read.");
     }

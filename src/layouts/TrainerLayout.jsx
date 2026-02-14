@@ -29,9 +29,27 @@ export default function TrainerLayout() {
 
   useEffect(() => {
     fetchUnreadCount();
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000);
+    // Poll for new notifications every 5 seconds for near real-time updates
+    const interval = setInterval(fetchUnreadCount, 5000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Check for updates when window regains focus (trainer returns to app)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchUnreadCount();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
+  // Listen for notification updates from other components (e.g., when marking as read)
+  useEffect(() => {
+    const handleNotificationUpdate = () => {
+      fetchUnreadCount();
+    };
+    window.addEventListener("notifications-updated", handleNotificationUpdate);
+    return () => window.removeEventListener("notifications-updated", handleNotificationUpdate);
   }, []);
 
   useEffect(() => {
