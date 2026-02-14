@@ -223,22 +223,23 @@ export default function TrainerBooking() {
     }
   };
 
-  const moveBoxingBooking = async (bookingId) => {
+  const confirmBoxingSession = async (bookingId) => {
     if (!bookingId) return;
     setMsg(null);
-    setBusyKey(`move-${bookingId}`);
+    setBusyKey(`confirm-boxing-${bookingId}`);
     try {
       const res = await runFirstSuccessfulRequest([
-        () => axiosClient.post(`/trainer/boxing-bookings/${bookingId}/move`),
-        () => axiosClient.patch(`/trainer/boxing-bookings/${bookingId}/move`),
-        () => axiosClient.patch(`/trainer/boxing-bookings/${bookingId}/mark-hold`),
+        () => axiosClient.post(`/trainer/boxing-bookings/${bookingId}/confirm`),
+        () => axiosClient.patch(`/trainer/boxing-bookings/${bookingId}/confirm`),
+        () => axiosClient.post(`/trainer/boxing-bookings/${bookingId}/mark-active`),
+        () => axiosClient.patch(`/trainer/boxing-bookings/${bookingId}/mark-active`),
       ]);
-      setMsg({ type: "success", text: res?.data?.message || "Booking moved." });
+      setMsg({ type: "success", text: res?.data?.message || "Boxing session confirmed." });
       await fetchBoxingBookings();
     } catch (e) {
       setMsg({
         type: "danger",
-        text: e?.response?.data?.message || "Failed to move booking.",
+        text: e?.response?.data?.message || "Failed to confirm boxing session.",
       });
     } finally {
       setBusyKey(null);
@@ -465,39 +466,24 @@ export default function TrainerBooking() {
                         <span>{String(b?.status || "—")}</span>
                       </div>
 
-                      {activeTab === "trainer" ? (
-                        <div className="d-flex justify-content-between align-items-center">
-                          <span style={{ opacity: 0.8 }}>Session confirmation</span>
-                          <button
-                            className="btn btn-sm btn-outline-info"
-                            onClick={() => confirmSession(bookingId)}
-                            disabled={isCompleted || busyKey === `confirm-${bookingId}`}
-                            title={isCompleted ? "All sessions completed" : "Confirm this session"}
-                          >
-                            {busyKey === `confirm-${bookingId}` ? "..." : "Confirm"}
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="d-flex justify-content-between align-items-center">
-                          <span style={{ opacity: 0.8 }}>Booking flow</span>
-                          <div className="d-flex align-items-center gap-2">
-                            <span style={{ textTransform: "lowercase" }}>
-                              {String(b?.status || "—")}
-                            </span>
-                            <button
-                              className="btn btn-sm btn-outline-warning"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                moveBoxingBooking(bookingId);
-                              }}
-                              disabled={isCompleted || busyKey === `move-${bookingId}`}
-                              title={isCompleted ? "All sessions completed" : "Move booking"}
-                            >
-                              {busyKey === `move-${bookingId}` ? "..." : "Move"}
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span style={{ opacity: 0.8 }}>Session confirmation</span>
+                        <button
+                          className="btn btn-sm btn-outline-info"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (activeTab === "trainer") {
+                              confirmSession(bookingId);
+                            } else {
+                              confirmBoxingSession(bookingId);
+                            }
+                          }}
+                          disabled={isCompleted || busyKey === `confirm-${bookingId}` || busyKey === `confirm-boxing-${bookingId}`}
+                          title={isCompleted ? "All sessions completed" : "Confirm this session"}
+                        >
+                          {busyKey === `confirm-${bookingId}` || busyKey === `confirm-boxing-${bookingId}` ? "..." : "Confirm"}
+                        </button>
+                      </div>
                     </div>
 
                     {b?.notes && (
