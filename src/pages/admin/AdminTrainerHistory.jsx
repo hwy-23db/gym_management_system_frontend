@@ -290,11 +290,11 @@ export default function AdminTrainerHistory() {
     try {
       let payload = null;
       try {
-        const res = await axiosClient.get(`/trainer/${recordId}/records`);
+        const res = await axiosClient.get(`/user/${recordId}/records`);
         payload = res?.data || null;
       } catch (primaryErr) {
         if (primaryErr?.response?.status !== 404) throw primaryErr;
-        const fallbackRes = await axiosClient.get(`/trainers/${recordId}/records`);
+        const fallbackRes = await axiosClient.get(`/users/${recordId}/records`);
         payload = fallbackRes?.data || null;
       }
 
@@ -308,42 +308,9 @@ export default function AdminTrainerHistory() {
         setTrainerProfile(trainerFromState);
       }
 
-      if (!trainerBookings.length) {
-        try {
-          const bookingsRes = await axiosClient.get("/trainer-bookings");
-          const allBookings = pickArray(bookingsRes?.data, ["bookings", "data"]).length
-            ? pickArray(bookingsRes?.data, ["bookings", "data"])
-            : normalizeArray(bookingsRes?.data);
-
-          const validIds = new Set(
-            [
-              recordId,
-              trainerFromState?.id,
-              trainerFromState?.user_id,
-              trainerFromState?.trainer_id,
-              trainerFromState?.trainer?.id,
-              trainerFromState?.trainer?.user_id,
-            ]
-              .filter((value) => value !== null && value !== undefined && value !== "")
-              .map((value) => String(value)),
-          );
-
-          trainerBookings = allBookings.filter((item) => {
-            const bookingTrainerIds = [
-              item?.trainer_id,
-              item?.trainer?.id,
-              item?.trainer_user_id,
-              item?.trainer?.user_id,
-              item?.assigned_trainer_id,
-            ]
-              .filter((value) => value !== null && value !== undefined && value !== "")
-              .map((value) => String(value));
-            return bookingTrainerIds.some((trainerIdValue) => validIds.has(trainerIdValue));
-          });
-        } catch {
-          trainerBookings = [];
-        }
-      }
+      // NOTE: Do not fallback to global trainer-bookings endpoint.
+      // It can mix unrelated trainers when IDs differ between users.id and trainer-specific IDs.
+      // /users/{id}/records already returns bookings for this specific user record.
 
       if (!attendanceRecords.length) {
         const attendanceEndpoints = [
