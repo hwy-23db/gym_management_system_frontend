@@ -74,6 +74,14 @@ function normalizeArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function pickArray(source, keys) {
+  for (const key of keys) {
+    const value = source?.[key];
+    if (Array.isArray(value)) return value;
+  }
+  return [];
+}
+
 function buildErrorMessage(error) {
   const status = error?.response?.status;
   if (status === 404) return "Trainer not found.";
@@ -178,6 +186,12 @@ function buildBookingEntry(source) {
     sessionsUsed,
     paidStatus,
     notes: source?.notes ?? source?.note ?? null,
+    trainerId:
+      source?.trainer_id ??
+      source?.trainer?.id ??
+      source?.trainer_user_id ??
+      source?.trainer?.user_id ??
+      null,
   };
 }
 
@@ -268,111 +282,86 @@ export default function AdminTrainerHistory() {
       return;
     }
     
-    console.log("[AdminTrainerHistory] Loading records for trainer ID:", recordId);
-    
     setError(null);
     setLoading(true);
     requestRef.current += 1;
     const requestId = requestRef.current;
 
     try {
-      // Use trainer profile from state if available
-      if (trainerFromState) {
+      let payload = null;
+      try {
+        const res = await axiosClient.get(`/trainer/${recordId}/records`);
+        payload = res?.data || null;
+      } catch (primaryErr) {
+        if (primaryErr?.response?.status !== 404) throw primaryErr;
+        const fallbackRes = await axiosClient.get(`/trainers/${recordId}/records`);
+        payload = fallbackRes?.data || null;
+      }
+
+      let trainerBookings = pickArray(payload, ["trainer_bookings", "bookings", "trainerBookings", "data"]);
+      let attendanceRecords = pickArray(payload, ["attendance", "attendance_records", "records"]);
+
+      const profileFromPayload = payload?.trainer ?? payload?.user ?? payload?.profile ?? null;
+      if (profileFromPayload) {
+        setTrainerProfile(profileFromPayload);
+      } else if (trainerFromState) {
         setTrainerProfile(trainerFromState);
       }
 
-      // Fetch trainer bookings (clients assigned to this trainer)
-      let trainerBookings = [];
-      let attendanceRecords = [];
+      if (!trainerBookings.length) {
+        try {
+          const bookingsRes = await axiosClient.get("/trainer-bookings");
+          const allBookings = pickArray(bookingsRes?.data, ["bookings", "data"]).length
+            ? pickArray(bookingsRes?.data, ["bookings", "data"])
+            : normalizeArray(bookingsRes?.data);
 
-      // Try to get all trainer bookings and filter by trainer_id
-      try {
-        console.log("[AdminTrainerHistory] Fetching /trainer-bookings");
-        const bookingsRes = await axiosClient.get("/trainer-bookings");
-        
-        // Handle different response formats
-        const allBookings = Array.isArray(bookingsRes?.data?.bookings) 
-          ? bookingsRes.data.bookings 
-          : Array.isArray(bookingsRes?.data) 
-            ? bookingsRes.data 
-            : Array.isArray(bookingsRes?.data?.data) 
-              ? bookingsRes.data.data 
-              : [];
-        
-        console.log("[AdminTrainerHistory] All trainer bookings:", allBookings.length);
-        console.log("[AdminTrainerHistory] Sample booking:", allBookings[0]);
-        
-        // Filter bookings assigned to this trainer
-        trainerBookings = allBookings.filter((b) => {
-          const trainerId = String(
-            b?.trainer_id ?? 
-            b?.trainer?.id ?? 
-            b?.assigned_trainer_id ??
-            ""
+          const validIds = new Set(
+            [
+              recordId,
+              trainerFromState?.id,
+              trainerFromState?.user_id,
+              trainerFromState?.trainer_id,
+              trainerFromState?.trainer?.id,
+              trainerFromState?.trainer?.user_id,
+            ]
+              .filter((value) => value !== null && value !== undefined && value !== "")
+              .map((value) => String(value)),
           );
-          console.log("[AdminTrainerHistory] Comparing trainer_id:", trainerId, "with recordId:", recordId);
-          return trainerId === recordId;
-        });
-        
-        console.log("[AdminTrainerHistory] Filtered bookings for trainer:", trainerBookings.length);
-      } catch (err) {
-        console.warn("[AdminTrainerHistory] Failed to fetch trainer-bookings:", err?.message);
+
+          trainerBookings = allBookings.filter((item) => {
+            const bookingTrainerIds = [
+              item?.trainer_id,
+              item?.trainer?.id,
+              item?.trainer_user_id,
+              item?.trainer?.user_id,
+              item?.assigned_trainer_id,
+            ]
+              .filter((value) => value !== null && value !== undefined && value !== "")
+              .map((value) => String(value));
+            return bookingTrainerIds.some((trainerIdValue) => validIds.has(trainerIdValue));
+          });
+        } catch {
+          trainerBookings = [];
+        }
       }
 
-      // Try to get trainer's attendance records
-      try {
+      if (!attendanceRecords.length) {
         const attendanceEndpoints = [
           `/attendance/trainer/${recordId}`,
           `/trainer/${recordId}/attendance`,
           `/attendance?trainer_id=${recordId}`,
         ];
-
         for (const endpoint of attendanceEndpoints) {
           try {
-            console.log("[AdminTrainerHistory] Trying attendance:", endpoint);
             const attRes = await axiosClient.get(endpoint);
-            const attData = attRes?.data;
-            attendanceRecords = Array.isArray(attData) 
-              ? attData 
-              : Array.isArray(attData?.data) 
-                ? attData.data 
-                : Array.isArray(attData?.records)
-                  ? attData.records
-                  : [];
-            if (attendanceRecords.length > 0) {
-              console.log("[AdminTrainerHistory] Found attendance records:", attendanceRecords.length);
-              break;
+            attendanceRecords = pickArray(attRes?.data, ["records", "attendance", "data"]);
+            if (!attendanceRecords.length) {
+              attendanceRecords = normalizeArray(attRes?.data);
             }
-          } catch (attErr) {
-            console.log("[AdminTrainerHistory] Attendance endpoint failed:", endpoint);
+            if (attendanceRecords.length) break;
+          } catch {
+            // continue trying alternate attendance endpoints
           }
-        }
-      } catch (err) {
-        console.warn("[AdminTrainerHistory] Failed to fetch attendance:", err?.message);
-      }
-
-      // If we still don't have trainer profile, try to fetch it
-      if (!trainerFromState) {
-        try {
-          const userEndpoints = [
-            `/users/${recordId}`,
-            `/user/${recordId}`,
-            `/trainers/${recordId}`,
-          ];
-          for (const endpoint of userEndpoints) {
-            try {
-              const userRes = await axiosClient.get(endpoint);
-              const userData = userRes?.data?.user ?? userRes?.data?.data ?? userRes?.data;
-              if (userData?.name) {
-                setTrainerProfile(userData);
-                break;
-              }
-            } catch (e) {
-              // continue
-            }
-          }
-        } catch (err) {
-          console.warn("[AdminTrainerHistory] Failed to fetch trainer profile:", err?.message);
         }
       }
       
@@ -385,7 +374,6 @@ export default function AdminTrainerHistory() {
         });
       }
     } catch (err) {
-      console.error("[AdminTrainerHistory] Error loading records:", err);
       if (requestId === requestRef.current) {
         setRecords(emptyRecords);
         setError(buildErrorMessage(err));
@@ -583,36 +571,22 @@ function TrainerRecordsDetail({
         </div>
       )}
 
-      {/* Summary Stats */}
       <div className="card bg-dark text-white border-secondary mb-4">
         <div className="card-body">
-          <div className="row g-3">
-            <div className="col-md-3 col-6">
-              <div className="text-muted small">Total Bookings</div>
-              <div className="fw-bold fs-4">{totalBookings}</div>
-            </div>
-            <div className="col-md-3 col-6">
-              <div className="text-muted small">Active</div>
-              <div className="fw-bold fs-4 text-success">{totalActive}</div>
-            </div>
-            <div className="col-md-3 col-6">
-              <div className="text-muted small">Upcoming</div>
-              <div className="fw-bold fs-4 text-info">{totalUpcoming}</div>
-            </div>
-            <div className="col-md-3 col-6">
-              <div className="text-muted small">Completed</div>
-              <div className="fw-bold fs-4 text-primary">{totalCompleted}</div>
+          <div className="d-flex flex-wrap justify-content-between gap-3">
+            <div>
+              <div className="text-muted small">Summary</div>
+              <div className="fw-bold fs-5">Trainer Booking Records</div>
+              <div className="text-muted small">
+                Total: {totalBookings} · Active: {totalActive} · Upcoming: {totalUpcoming} · Completed: {totalCompleted}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Active Bookings */}
       <div className="mb-4">
-        <h5 className="mb-3">
-          <span className="badge bg-success me-2">{totalActive}</span>
-          Active Bookings (Currently Training)
-        </h5>
+        <h5 className="mb-3">Active Bookings</h5>
         {loading && bookingGroups.active.length === 0 ? (
           <div className="text-center text-muted py-4">Loading...</div>
         ) : (
@@ -620,25 +594,8 @@ function TrainerRecordsDetail({
         )}
       </div>
 
-      {/* Upcoming Bookings */}
       <div className="mb-4">
-        <h5 className="mb-3">
-          <span className="badge bg-info me-2">{totalUpcoming}</span>
-          Upcoming / Pending Bookings
-        </h5>
-        {loading && bookingGroups.upcoming.length === 0 ? (
-          <div className="text-center text-muted py-4">Loading...</div>
-        ) : (
-          renderBookingsTable(bookingGroups.upcoming)
-        )}
-      </div>
-
-      {/* Completed Bookings */}
-      <div className="mb-4">
-        <h5 className="mb-3">
-          <span className="badge bg-primary me-2">{totalCompleted}</span>
-          Completed / Past Bookings
-        </h5>
+        <h5 className="mb-3">Completed / Past Bookings</h5>
         {loading && bookingGroups.completed.length === 0 ? (
           <div className="text-center text-muted py-4">Loading...</div>
         ) : (
@@ -646,7 +603,15 @@ function TrainerRecordsDetail({
         )}
       </div>
 
-      {/* Attendance Records */}
+      <div className="mb-4">
+        <h5 className="mb-3">Upcoming / Pending Bookings</h5>
+        {loading && bookingGroups.upcoming.length === 0 ? (
+          <div className="text-center text-muted py-4">Loading...</div>
+        ) : (
+          renderBookingsTable(bookingGroups.upcoming)
+        )}
+      </div>
+
       <div>
         <h5 className="mb-3">
           <span className="badge bg-secondary me-2">{attendanceRecords.length}</span>
