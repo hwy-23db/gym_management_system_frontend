@@ -67,6 +67,15 @@ function getSessionProgress(booking) {
 }
 
 function getPackageType(booking) {
+  // For boxing bookings, check common package type fields
+  const boxingPackageType =
+    booking?.package_type ||
+    booking?.boxing_package?.package_type ||
+    booking?.boxing_package?.type ||
+    booking?.boxing_package?.name ||
+    booking?.package_name;
+  if (boxingPackageType) return boxingPackageType;
+
   return (
     pick(booking, ["package_type", "package_type_name", "package_category", "package_kind"]) ||
     pick(booking?.package, ["type", "package_type", "package_kind", "package_category"]) ||
@@ -471,14 +480,22 @@ export default function TrainerBooking() {
                       ) : (
                         <div className="d-flex justify-content-between align-items-center">
                           <span style={{ opacity: 0.8 }}>Booking flow</span>
-                          <button
-                            className="btn btn-sm btn-outline-warning"
-                            onClick={() => moveBoxingBooking(bookingId)}
-                            disabled={isCompleted || busyKey === `move-${bookingId}`}
-                            title={isCompleted ? "All sessions completed" : "Move booking"}
-                          >
-                            {busyKey === `move-${bookingId}` ? "..." : "Move"}
-                          </button>
+                          <div className="d-flex align-items-center gap-2">
+                            <span style={{ textTransform: "lowercase" }}>
+                              {String(b?.status || "—")}
+                            </span>
+                            <button
+                              className="btn btn-sm btn-outline-warning"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveBoxingBooking(bookingId);
+                              }}
+                              disabled={isCompleted || busyKey === `move-${bookingId}`}
+                              title={isCompleted ? "All sessions completed" : "Move booking"}
+                            >
+                              {busyKey === `move-${bookingId}` ? "..." : "Move"}
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
